@@ -1,4 +1,4 @@
-import copy
+﻿import copy
 import os
 import tempfile
 import time
@@ -32,7 +32,7 @@ from plugins.autosubv3.translate.openai_translate import OpenAi
 
 
 class UserInterruptException(Exception):
-    """用户中断当前任务的异常"""
+    """鐢ㄦ埛涓柇褰撳墠浠诲姟鐨勫紓甯?""
     pass
 
 
@@ -62,7 +62,7 @@ class TaskItem:
 
 class FileMonitorHandler(FileSystemEventHandler):
     """
-    目录监控响应类，监听新增文件事件
+    鐩綍鐩戞帶鍝嶅簲绫伙紝鐩戝惉鏂板鏂囦欢浜嬩欢
     """
 
     def __init__(self, mon_path: str, plugin):
@@ -72,33 +72,33 @@ class FileMonitorHandler(FileSystemEventHandler):
 
     def on_created(self, event):
         if not event.is_directory:
-            logger.debug(f"检测到新文件：{event.src_path}")
+            logger.debug(f"妫€娴嬪埌鏂版枃浠讹細{event.src_path}")
             self._plugin._add_monitor_task(event.src_path)
 
 
 class AutoSubv3(_PluginBase):
-    # 插件名称
-    plugin_name = "AI字幕魔改版v3"
-    # 插件描述
-    plugin_desc = "自动生成字幕并翻译成中文，支持最新openai sdk，改成并发，翻译速度加倍；自用修改版；"
-    # 插件图标
+    # 鎻掍欢鍚嶇О
+    plugin_name = "AI瀛楀箷榄旀敼鐗坴3"
+    # 鎻掍欢鎻忚堪
+    plugin_desc = "鑷姩鐢熸垚瀛楀箷骞剁炕璇戞垚涓枃锛屾敮鎸佹渶鏂皁penai sdk锛屾敼鎴愬苟鍙戯紝缈昏瘧閫熷害鍔犲€嶏紱鑷敤淇敼鐗堬紱"
+    # 鎻掍欢鍥炬爣
     plugin_icon = "autosubtitles.jpeg"
-    # 主题色
+    # 涓婚鑹?
     plugin_color = "#2C4F7E"
-    # 插件版本
-    plugin_version = "3.5.38"
-    # 插件作者
+    # 鎻掍欢鐗堟湰
+    plugin_version = "3.5.39"
+    # 鎻掍欢浣滆€?
     plugin_author = "jianji112"
-    # 作者主页
+    # 浣滆€呬富椤?
     author_url = "https://github.com/jianji112"
-    # 插件配置项ID前缀
+    # 鎻掍欢閰嶇疆椤笽D鍓嶇紑
     plugin_config_prefix = "autosubv3"
-    # 加载顺序
+    # 鍔犺浇椤哄簭
     plugin_order = 14
-    # 可使用的用户级别
+    # 鍙娇鐢ㄧ殑鐢ㄦ埛绾у埆
     auth_level = 2
 
-    # 私有属性
+    # 绉佹湁灞炴€?
     _tasks: Dict[str, TaskItem] = None
     _task_queue = None
     _consumer_thread = None
@@ -133,22 +133,22 @@ class AutoSubv3(_PluginBase):
     _lock = Lock()
 
     def init_plugin(self, config=None):
-        # 如果没有配置信息， 则不处理
+        # 濡傛灉娌℃湁閰嶇疆淇℃伅锛?鍒欎笉澶勭悊
         if not config:
             return
-        # 清理插件启动前的残留临时文件
+        # 娓呯悊鎻掍欢鍚姩鍓嶇殑娈嬬暀涓存椂鏂囦欢
         tempdir = tempfile.gettempdir()
         for file in os.listdir(tempdir):
             if file.startswith('autosub-'):
                 try:
                     os.remove(os.path.join(tempdir, file))
-                    logger.info(f"清理残留临时文件：{file}")
+                    logger.info(f"娓呯悊娈嬬暀涓存椂鏂囦欢锛歿file}")
                 except Exception:
                     pass
         self._tasks = self.load_tasks()
         self._enabled = config.get('enabled', False)
         self._clear_history = config.get('clear_history', False)
-        # 监控路径配置
+        # 鐩戞帶璺緞閰嶇疆
         monitor_str = config.get('path_whitelist', '').strip()
         self._monitor_paths = [p.strip() for p in monitor_str.split('\n') if p.strip()] if monitor_str else []
         self._process_new_only = config.get('process_new_only', True)
@@ -157,7 +157,7 @@ class AutoSubv3(_PluginBase):
             self._path_list = list(set(config.get('path_list').split('\n')))
         self._send_notify = config.get('send_notify', False)
         self._file_size = int(config.get('file_size')) if config.get('file_size') else 10
-        # 字幕生成设置
+        # 瀛楀箷鐢熸垚璁剧疆
         self._translate_preference = config.get('translate_preference', 'english_first')
         self._enable_asr = config.get('enable_asr', True)
         if self._enable_asr:
@@ -173,7 +173,7 @@ class AutoSubv3(_PluginBase):
         if self._translate_zh:
             openai_key = config.get('openai_key')
             if not openai_key:
-                logger.error(f"翻译依赖于OpenAI，请先维护openai_key")
+                logger.error(f"缈昏瘧渚濊禆浜嶰penAI锛岃鍏堢淮鎶penai_key")
                 return
             openai_url = config.get('openai_url', "https://api.openai.com")
             openai_proxy = config.get('openai_proxy', False)
@@ -196,8 +196,8 @@ class AutoSubv3(_PluginBase):
             self.clear_tasks()
             self.save_skip_chinese_videos({})
         if self._enabled:
-            logger.info("AI生成字幕服务已启动")
-            # asr 配置检查
+            logger.info("AI鐢熸垚瀛楀箷鏈嶅姟宸插惎鍔?)
+            # asr 閰嶇疆妫€鏌?
             if self._enable_asr and not self.__check_asr():
                 return
 
@@ -205,16 +205,16 @@ class AutoSubv3(_PluginBase):
                 self._task_queue = queue.Queue()
                 self._consumer_thread = threading.Thread(target=self._consume_tasks, daemon=True)
                 self._consumer_thread.start()
-                logger.info("任务队列和消费者线程已启动")
+                logger.info("浠诲姟闃熷垪鍜屾秷璐硅€呯嚎绋嬪凡鍚姩")
                 self._running = True
 
-            # 启动目录监控
+            # 鍚姩鐩綍鐩戞帶
             self._start_file_monitor()
 
             if self._run_now:
                 config['run_now'] = False
                 self.update_config(config)
-                logger.info("立即运行一次")
+                logger.info("绔嬪嵆杩愯涓€娆?)
                 self._run_at_once(path_list=self._path_list)
         else:
             self.stop_service()
@@ -235,7 +235,7 @@ class AutoSubv3(_PluginBase):
                 )
                 tasks[task_id] = task
             except Exception as e:
-                logger.error(f"恢复任务失败：{e}")
+                logger.error(f"鎭㈠浠诲姟澶辫触锛歿e}")
         return tasks
 
     @staticmethod
@@ -254,25 +254,25 @@ class AutoSubv3(_PluginBase):
         self.save_data("tasks", tasks_dict)
 
     def load_skipped_videos(self) -> Dict[str, dict]:
-        """加载无声音跳过的视频记录"""
+        """鍔犺浇鏃犲０闊宠烦杩囩殑瑙嗛璁板綍"""
         return self.get_data("skipped_videos") or {}
 
     def save_skipped_videos(self, skipped: Dict[str, dict]):
-        """保存无声音跳过的视频记录"""
+        """淇濆瓨鏃犲０闊宠烦杩囩殑瑙嗛璁板綍"""
         self.save_data("skipped_videos", skipped)
 
     def add_skipped_video(self, video_file: str):
-        """添加无声音跳过的视频记录"""
+        """娣诲姞鏃犲０闊宠烦杩囩殑瑙嗛璁板綍"""
         skipped = self.load_skipped_videos()
         skipped[video_file] = {
             "skip_time": datetime.now().isoformat(),
             "reason": "no_audio"
         }
         self.save_skipped_videos(skipped)
-        logger.info(f"已记录无声音视频：{video_file}")
+        logger.info(f"宸茶褰曟棤澹伴煶瑙嗛锛歿video_file}")
 
     def is_video_skipped(self, video_file: str) -> bool:
-        """检查视频是否因无声音已被跳过"""
+        """妫€鏌ヨ棰戞槸鍚﹀洜鏃犲０闊冲凡琚烦杩?""
         skipped = self.load_skipped_videos()
         return video_file in skipped
 
@@ -295,16 +295,16 @@ class AutoSubv3(_PluginBase):
             "reason": "chinese"
         }
         self.save_skip_chinese_videos(skipped)
-        logger.info(f"已记录中文视频跳过：{video_file}")
+        logger.info(f"宸茶褰曚腑鏂囪棰戣烦杩囷細{video_file}")
 
     def is_video_skip_chinese(self, video_file: str) -> bool:
         return video_file in self.load_skip_chinese_videos()
 
     def add_task(self, video_file: str, source: TaskSource):
         """
-        添加新任务到队列和任务列表中，若任务已存在则跳过。
-        :param video_file: 视频文件路径
-        :param source: 任务来源（手动/事件）
+        娣诲姞鏂颁换鍔″埌闃熷垪鍜屼换鍔″垪琛ㄤ腑锛岃嫢浠诲姟宸插瓨鍦ㄥ垯璺宠繃銆?
+        :param video_file: 瑙嗛鏂囦欢璺緞
+        :param source: 浠诲姟鏉ユ簮锛堟墜鍔?浜嬩欢锛?
         """
         task = TaskItem(
             task_id=str(uuid4()),
@@ -314,13 +314,13 @@ class AutoSubv3(_PluginBase):
         )
 
         if self.__is_duplicate_task(task.video_file):
-            logger.info(f"任务已存在，跳过添加：{video_file}")
+            logger.info(f"浠诲姟宸插瓨鍦紝璺宠繃娣诲姞锛歿video_file}")
             return False
 
         self._task_queue.put(task)
         self._tasks[task.task_id] = task
         self.save_tasks()
-        logger.info(f"加入任务队列: {video_file}")
+        logger.info(f"鍔犲叆浠诲姟闃熷垪: {video_file}")
         return True
 
     def clear_tasks(self):
@@ -329,14 +329,14 @@ class AutoSubv3(_PluginBase):
         ]}
         self.save_tasks()
         self.save_skipped_videos({})
-        logger.info("插件历史任务已清除")
+        logger.info("鎻掍欢鍘嗗彶浠诲姟宸叉竻闄?)
 
     def __is_duplicate_task(self, video_file: str) -> bool:
         with self._task_queue.mutex:
             for task in self._task_queue.queue:
                 if task.video_file == video_file:
                     return True
-            # 还要检查当前正在处理的任务（即可能不在队列中，但正在被消费）
+            # 杩樿妫€鏌ュ綋鍓嶆鍦ㄥ鐞嗙殑浠诲姟锛堝嵆鍙兘涓嶅湪闃熷垪涓紝浣嗘鍦ㄨ娑堣垂锛?
             if self._consumer_thread and self._current_processing_task and self._current_processing_task.video_file == video_file:
                 return True
         return False
@@ -348,7 +348,7 @@ class AutoSubv3(_PluginBase):
                 if task is None:
                     continue
                 self._current_processing_task = task
-                logger.info(f"开始处理任务 {task.task_id}: {task.video_file}")
+                logger.info(f"寮€濮嬪鐞嗕换鍔?{task.task_id}: {task.video_file}")
                 task.status = TaskStatus.IN_PROGRESS
                 self._tasks[task.task_id] = task
                 self.save_tasks()
@@ -361,16 +361,16 @@ class AutoSubv3(_PluginBase):
             except queue.Empty:
                 continue
             except Exception as e:
-                logger.error(f"消费任务时发生异常: {e}")
+                logger.error(f"娑堣垂浠诲姟鏃跺彂鐢熷紓甯? {e}")
                 logger.error(traceback.format_exc())
                 self._current_processing_task = None
-        logger.info("消费线程已退出")
+        logger.info("娑堣垂绾跨▼宸查€€鍑?)
 
-    # 监听媒体入库事件，每个事件触发一次自动字幕任务
+    # 鐩戝惉濯掍綋鍏ュ簱浜嬩欢锛屾瘡涓簨浠惰Е鍙戜竴娆¤嚜鍔ㄥ瓧骞曚换鍔?
     @eventmanager.register(EventType.TransferComplete)
     def _start_file_monitor(self):
-        """启动目录监控"""
-        # 停止现有 observer
+        """鍚姩鐩綍鐩戞帶"""
+        # 鍋滄鐜版湁 observer
         if self._observer:
             try:
                 self._observer.stop()
@@ -380,35 +380,35 @@ class AutoSubv3(_PluginBase):
             self._observer = None
 
         if not self._monitor_paths:
-            logger.info("未配置监控路径，不启动目录监控")
+            logger.info("鏈厤缃洃鎺ц矾寰勶紝涓嶅惎鍔ㄧ洰褰曠洃鎺?)
             return
 
-        # 全量扫描（仅处理新增关闭时）
+        # 鍏ㄩ噺鎵弿锛堜粎澶勭悊鏂板鍏抽棴鏃讹級
         if not self._process_new_only:
-            logger.info("仅处理新增关闭，开始全量扫描监控路径 ...")
+            logger.info("浠呭鐞嗘柊澧炲叧闂紝寮€濮嬪叏閲忔壂鎻忕洃鎺ц矾寰?...")
             for mon_path in self._monitor_paths:
                 if os.path.isdir(mon_path):
                     for video_file in self._get_library_files(mon_path):
                         self.add_task(video_file, TaskSource.EVENT)
-            logger.info("全量扫描完成")
+            logger.info("鍏ㄩ噺鎵弿瀹屾垚")
 
-        # 启动 watchdog 监控
+        # 鍚姩 watchdog 鐩戞帶
         try:
             self._observer = Observer(timeout=10)
             for mon_path in self._monitor_paths:
                 if os.path.isdir(mon_path):
                     handler = FileMonitorHandler(mon_path, self)
                     self._observer.schedule(handler, path=mon_path, recursive=True)
-                    logger.info(f"启动目录监控：{mon_path}")
+                    logger.info(f"鍚姩鐩綍鐩戞帶锛歿mon_path}")
             self._observer.daemon = True
             self._observer.start()
-            logger.info("目录监控服务已启动")
+            logger.info("鐩綍鐩戞帶鏈嶅姟宸插惎鍔?)
         except Exception as e:
-            logger.error(f"启动目录监控失败：{e}")
+            logger.error(f"鍚姩鐩綍鐩戞帶澶辫触锛歿e}")
             logger.error(traceback.format_exc())
 
     def _add_monitor_task(self, file_path: str):
-        """监控处理器回调，添加新文件任务"""
+        """鐩戞帶澶勭悊鍣ㄥ洖璋冿紝娣诲姞鏂版枃浠朵换鍔?""
         if not os.path.exists(file_path):
             return
         ext = os.path.splitext(file_path)[-1].lower()
@@ -418,11 +418,11 @@ class AutoSubv3(_PluginBase):
             self.add_task(file_path, TaskSource.EVENT)
 
     def _run_at_once(self, path_list: List[str]):
-        # 立即执行一次：执行配置的媒体库目录，不受白名单限制
-        # 白名单仅在自动入库事件中生效
+        # 绔嬪嵆鎵ц涓€娆★細鎵ц閰嶇疆鐨勫獟浣撳簱鐩綍锛屼笉鍙楃櫧鍚嶅崟闄愬埗
+        # 鐧藉悕鍗曚粎鍦ㄨ嚜鍔ㄥ叆搴撲簨浠朵腑鐢熸晥
         for path in path_list:
             if not os.path.exists(path) or not os.path.isabs(path):
-                logger.warn(f"目录/文件无效，不进行处理:{path}")
+                logger.warn(f"鐩綍/鏂囦欢鏃犳晥锛屼笉杩涜澶勭悊:{path}")
                 continue
             if os.path.isdir(path):
                 for video_file in self.__get_library_files(path):
@@ -432,122 +432,122 @@ class AutoSubv3(_PluginBase):
 
     def __check_asr(self):
         if not self._faster_whisper_model_path or not self._faster_whisper_model:
-            logger.warn(f"faster-whisper配置信息不完整，不进行处理")
+            logger.warn(f"faster-whisper閰嶇疆淇℃伅涓嶅畬鏁达紝涓嶈繘琛屽鐞?)
             return False
         if not os.path.exists(self._faster_whisper_model_path):
-            logger.info(f"创建faster-whisper模型目录：{self._faster_whisper_model_path}")
+            logger.info(f"鍒涘缓faster-whisper妯″瀷鐩綍锛歿self._faster_whisper_model_path}")
             os.mkdir(self._faster_whisper_model_path)
         try:
             from faster_whisper import WhisperModel, download_model
         except ImportError:
-            logger.warn(f"faster-whisper 未安装，不进行处理")
+            logger.warn(f"faster-whisper 鏈畨瑁咃紝涓嶈繘琛屽鐞?)
             return False
         return True
 
     def __process_autosub(self, video_file) -> TaskStatus:
         if not video_file:
-            logger.error(f"[Step 0] video_file 为空")
+            logger.error(f"[Step 0] video_file 涓虹┖")
             return TaskStatus.FAILED
-        logger.info(f"[Step 1] 检查文件大小：{video_file}")
-        # 如果文件大小小于指定大小， 则不处理
+        logger.info(f"[Step 1] 妫€鏌ユ枃浠跺ぇ灏忥細{video_file}")
+        # 濡傛灉鏂囦欢澶у皬灏忎簬鎸囧畾澶у皬锛?鍒欎笉澶勭悊
         if os.path.getsize(video_file) < self._file_size * 1024 * 1024:
-            logger.info(f"[Step 1] 文件小于最小大小 {self._file_size}MB，跳过")
+            logger.info(f"[Step 1] 鏂囦欢灏忎簬鏈€灏忓ぇ灏?{self._file_size}MB锛岃烦杩?)
             return TaskStatus.IGNORED
-        logger.info(f"[Step 2] 检查是否已标记为无声音跳过")
-        # 检查是否已标记为无声音跳过
+        logger.info(f"[Step 2] 妫€鏌ユ槸鍚﹀凡鏍囪涓烘棤澹伴煶璺宠繃")
+        # 妫€鏌ユ槸鍚﹀凡鏍囪涓烘棤澹伴煶璺宠繃
         if self.is_video_skipped(video_file):
-            logger.info(f"[Step 2] 视频已标记为无声音跳过：{video_file}")
+            logger.info(f"[Step 2] 瑙嗛宸叉爣璁颁负鏃犲０闊宠烦杩囷細{video_file}")
             return TaskStatus.NO_AUDIO
-        logger.info(f"[Step 3] 开始正式处理")
+        logger.info(f"[Step 3] 寮€濮嬫寮忓鐞?)
         start_time = time.time()
         file_path, file_ext = os.path.splitext(video_file)
         file_name = os.path.basename(video_file)
         if self._skip_chinese and self.is_video_skip_chinese(video_file):
-            logger.info(f"[Step 3] 视频已标记为中文跳过翻译：{video_file}")
-            message = f" 媒体: {file_name}\n 中文视频跳过翻译"
+            logger.info(f"[Step 3] 瑙嗛宸叉爣璁颁负涓枃璺宠繃缈昏瘧锛歿video_file}")
+            message = f" 濯掍綋: {file_name}\n 涓枃瑙嗛璺宠繃缈昏瘧"
             if self._send_notify:
-                self.post_message(mtype=NotificationType.Plugin, title="【自动字幕生成】", text=message)
+                self.post_message(mtype=NotificationType.Plugin, title="銆愯嚜鍔ㄥ瓧骞曠敓鎴愩€?, text=message)
             return TaskStatus.IGNORED
 
         try:
-            logger.info(f"[Step 4] 判断目的字幕是否已存在：{video_file}")
-            # 判断目的字幕（和内嵌）是否已存在
+            logger.info(f"[Step 4] 鍒ゆ柇鐩殑瀛楀箷鏄惁宸插瓨鍦細{video_file}")
+            # 鍒ゆ柇鐩殑瀛楀箷锛堝拰鍐呭祵锛夋槸鍚﹀凡瀛樺湪
             if self.__target_subtitle_exists(video_file):
-                logger.warn(f"[Step 4] 字幕文件已经存在，不进行处理")
+                logger.warn(f"[Step 4] 瀛楀箷鏂囦欢宸茬粡瀛樺湪锛屼笉杩涜澶勭悊")
                 return TaskStatus.IGNORED
-            logger.info(f"[Step 5] 生成字幕")
-            # 生成字幕
+            logger.info(f"[Step 5] 鐢熸垚瀛楀箷")
+            # 鐢熸垚瀛楀箷
             ret, lang, gen_sub_path = self.__generate_subtitle(video_file, file_path, self._enable_asr)
             if not ret:
-                # 检查是否是无声音跳过（刚记录的）
+                # 妫€鏌ユ槸鍚︽槸鏃犲０闊宠烦杩囷紙鍒氳褰曠殑锛?
                 if self.is_video_skipped(video_file):
-                    message = f" 媒体: {file_name}\n 无声音跳过"
+                    message = f" 濯掍綋: {file_name}\n 鏃犲０闊宠烦杩?
                     if self._send_notify:
-                        self.post_message(mtype=NotificationType.Plugin, title="【自动字幕生成】", text=message)
+                        self.post_message(mtype=NotificationType.Plugin, title="銆愯嚜鍔ㄥ瓧骞曠敓鎴愩€?, text=message)
                     return TaskStatus.NO_AUDIO
                 if lang == "skip_chinese" or self.is_video_skip_chinese(video_file):
-                    message = f" 媒体: {file_name}\n 中文视频跳过翻译"
+                    message = f" 濯掍綋: {file_name}\n 涓枃瑙嗛璺宠繃缈昏瘧"
                     if self._send_notify:
-                        self.post_message(mtype=NotificationType.Plugin, title="【自动字幕生成】", text=message)
+                        self.post_message(mtype=NotificationType.Plugin, title="銆愯嚜鍔ㄥ瓧骞曠敓鎴愩€?, text=message)
                     return TaskStatus.IGNORED
-                message = f" 媒体: {file_name}\n 生成字幕失败，跳过后续处理"
+                message = f" 濯掍綋: {file_name}\n 鐢熸垚瀛楀箷澶辫触锛岃烦杩囧悗缁鐞?
                 if self._send_notify:
-                    self.post_message(mtype=NotificationType.Plugin, title="【自动字幕生成】", text=message)
+                    self.post_message(mtype=NotificationType.Plugin, title="銆愯嚜鍔ㄥ瓧骞曠敓鎴愩€?, text=message)
                 return TaskStatus.FAILED
 
-            logger.info(f"[Step 6] 翻译字幕（如果需要）")
+            logger.info(f"[Step 6] 缈昏瘧瀛楀箷锛堝鏋滈渶瑕侊級")
             translated_to_zh = False
             if self._translate_zh:
-                # 翻译字幕（即使源语言是中文，也过LLM处理病句、繁转简、去空格）
-                logger.info(f"开始翻译字幕为中文 ...")
-                self.__translate_zh_subtitle(lang, gen_sub_path, f"{file_path}.zh.机翻.srt",
+                # 缈昏瘧瀛楀箷锛堝嵆浣挎簮璇█鏄腑鏂囷紝涔熻繃LLM澶勭悊鐥呭彞銆佺箒杞畝銆佸幓绌烘牸锛?
+                logger.info(f"寮€濮嬬炕璇戝瓧骞曚负涓枃 ...")
+                self.__translate_zh_subtitle(lang, gen_sub_path, f"{file_path}.zh.鏈虹炕.srt",
                                               output_mode=self._subtitle_output_mode)
-                logger.info(f"翻译字幕完成：{file_name}.zh.机翻.srt")
+                logger.info(f"缈昏瘧瀛楀箷瀹屾垚锛歿file_name}.zh.鏈虹炕.srt")
                 translated_to_zh = True
 
             end_time = time.time()
-            message = f" 媒体: {file_name}\n 处理完成\n 字幕原始语言: {lang}\n "
+            message = f" 濯掍綋: {file_name}\n 澶勭悊瀹屾垚\n 瀛楀箷鍘熷璇█: {lang}\n "
             if translated_to_zh:
-                message += f"字幕翻译语言: zh\n "
-            message += f"耗时：{round(end_time - start_time, 2)}秒"
-            logger.info(f"自动字幕生成 处理完成：{message}")
-            logger.info("")  # 空行分隔
-            logger.info("")  # 空行分隔
+                message += f"瀛楀箷缈昏瘧璇█: zh\n "
+            message += f"鑰楁椂锛歿round(end_time - start_time, 2)}绉?
+            logger.info(f"鑷姩瀛楀箷鐢熸垚 澶勭悊瀹屾垚锛歿message}")
+            logger.info("")  # 绌鸿鍒嗛殧
+            logger.info("")  # 绌鸿鍒嗛殧
             if self._send_notify:
-                self.post_message(mtype=NotificationType.Plugin, title="【自动字幕生成】", text=message)
+                self.post_message(mtype=NotificationType.Plugin, title="銆愯嚜鍔ㄥ瓧骞曠敓鎴愩€?, text=message)
             return TaskStatus.COMPLETED
         except UserInterruptException:
-            logger.info(f"用户中断当前任务：{video_file}")
-            logger.info("")  # 空行分隔
-            logger.info("")  # 空行分隔
+            logger.info(f"鐢ㄦ埛涓柇褰撳墠浠诲姟锛歿video_file}")
+            logger.info("")  # 绌鸿鍒嗛殧
+            logger.info("")  # 绌鸿鍒嗛殧
             return TaskStatus.FAILED
         except Exception as e:
-            logger.error(f"自动字幕生成 处理异常：{e}")
+            logger.error(f"鑷姩瀛楀箷鐢熸垚 澶勭悊寮傚父锛歿e}")
             end_time = time.time()
-            message = f" 媒体: {file_name}\n 处理失败\n 耗时：{round(end_time - start_time, 2)}秒"
+            message = f" 濯掍綋: {file_name}\n 澶勭悊澶辫触\n 鑰楁椂锛歿round(end_time - start_time, 2)}绉?
             if self._send_notify:
-                self.post_message(mtype=NotificationType.Plugin, title="【自动字幕生成】", text=message)
-            # 打印调用栈
+                self.post_message(mtype=NotificationType.Plugin, title="銆愯嚜鍔ㄥ瓧骞曠敓鎴愩€?, text=message)
+            # 鎵撳嵃璋冪敤鏍?
             logger.error(traceback.format_exc())
-            logger.info("")  # 空行分隔
-            logger.info("")  # 空行分隔
+            logger.info("")  # 绌鸿鍒嗛殧
+            logger.info("")  # 绌鸿鍒嗛殧
             return TaskStatus.FAILED
 
     def __do_speech_recognition(self, audio_lang, audio_file, video_file=None):
         """
-        语音识别, 生成字幕
+        璇煶璇嗗埆, 鐢熸垚瀛楀箷
         :param audio_lang:
         :param audio_file:
-        :param video_file: 视频文件路径（用于日志显示）
+        :param video_file: 瑙嗛鏂囦欢璺緞锛堢敤浜庢棩蹇楁樉绀猴級
         :return:
         """
         lang = audio_lang
         video_name = os.path.basename(video_file) if video_file else os.path.basename(audio_file)
-        logger.info(f"[Whisper音频提取文本] 开始处理: {video_name}")
+        logger.info(f"[Whisper闊抽鎻愬彇鏂囨湰] 寮€濮嬪鐞? {video_name}")
         try:
             from faster_whisper import WhisperModel, download_model
-            logger.info(f"[Whisper音频提取文本] {video_name} - 加载模型中...")
-            # 设置缓存目录, 防止缓存同目录出现 cross-device 错误
+            logger.info(f"[Whisper闊抽鎻愬彇鏂囨湰] {video_name} - 鍔犺浇妯″瀷涓?..")
+            # 璁剧疆缂撳瓨鐩綍, 闃叉缂撳瓨鍚岀洰褰曞嚭鐜?cross-device 閿欒
             cache_dir = os.path.join(self._faster_whisper_model_path, "cache")
             if not os.path.exists(cache_dir):
                 os.mkdir(cache_dir)
@@ -556,22 +556,22 @@ class AutoSubv3(_PluginBase):
                 os.environ["HTTP_PROXY"] = settings.PROXY['http']
                 os.environ["HTTPS_PROXY"] = settings.PROXY['https']
             
-            # 模型下载重试机制
+            # 妯″瀷涓嬭浇閲嶈瘯鏈哄埗
             max_retries = 3
             model = None
             for attempt in range(max_retries):
                 try:
                     model_path = download_model(self._faster_whisper_model, local_files_only=False, cache_dir=cache_dir)
                     if model_path is None:
-                        raise ValueError("模型下载返回空路径")
+                        raise ValueError("妯″瀷涓嬭浇杩斿洖绌鸿矾寰?)
                     model = WhisperModel(model_path, device="cpu", compute_type="int8", cpu_threads=psutil.cpu_count(logical=False))
                     break
                 except Exception as e:
                     if attempt < max_retries - 1:
-                        logger.warn(f"[Whisper音频提取文本] {video_name} - 模型下载失败（第{attempt+1}次），30秒后重试... 错误: {e}")
+                        logger.warn(f"[Whisper闊抽鎻愬彇鏂囨湰] {video_name} - 妯″瀷涓嬭浇澶辫触锛堢{attempt+1}娆★級锛?0绉掑悗閲嶈瘯... 閿欒: {e}")
                         time.sleep(30)
                     else:
-                        logger.error(f"[Whisper音频提取文本] {video_name} - 模型下载失败，已重试{max_retries}次。请检查：1) 网络连接 2) 代理配置 3) HuggingFace访问。错误: {e}")
+                        logger.error(f"[Whisper闊抽鎻愬彇鏂囨湰] {video_name} - 妯″瀷涓嬭浇澶辫触锛屽凡閲嶈瘯{max_retries}娆°€傝妫€鏌ワ細1) 缃戠粶杩炴帴 2) 浠ｇ悊閰嶇疆 3) HuggingFace璁块棶銆傞敊璇? {e}")
                         return False, None
             
             try:
@@ -581,27 +581,27 @@ class AutoSubv3(_PluginBase):
                                                   vad_filter=True,
                                                   temperature=0,
                                                   beam_size=5)
-                logger.info(f"[Whisper音频提取文本] {video_name} - 检测到语言：{info.language}（置信度 {info.language_probability:.2%}）")
+                logger.info(f"[Whisper闊抽鎻愬彇鏂囨湰] {video_name} - 妫€娴嬪埌璇█锛歿info.language}锛堢疆淇″害 {info.language_probability:.2%}锛?)
 
                 detected_lang = info.language
                 if lang == 'auto':
                     lang = detected_lang
 
                 if self._skip_chinese and self.__is_chinese_lang(lang):
-                    logger.info(f"[Whisper音频提取文本] {video_name} - 检测到中文且已开启中文视频不翻译，立即跳过后续字幕提取")
+                    logger.info(f"[Whisper闊抽鎻愬彇鏂囨湰] {video_name} - 妫€娴嬪埌涓枃涓斿凡寮€鍚腑鏂囪棰戜笉缈昏瘧锛岀珛鍗宠烦杩囧悗缁瓧骞曟彁鍙?)
                     return "skip_chinese", lang
 
-                logger.info(f"[Whisper音频提取文本] {video_name} - 开始提取字幕内容，语言：{lang}")
+                logger.info(f"[Whisper闊抽鎻愬彇鏂囨湰] {video_name} - 寮€濮嬫彁鍙栧瓧骞曞唴瀹癸紝璇█锛歿lang}")
                 extract_start_time = time.time()
             except ValueError as e:
                 if "max() iterable argument is empty" in str(e):
-                    logger.info(f"[Whisper音频提取文本] {video_name} - 音频文件中未检测到任何语言内容，标记为无声音")
-                    # 返回 None 表示无声音，不生成空字幕文件
+                    logger.info(f"[Whisper闊抽鎻愬彇鏂囨湰] {video_name} - 闊抽鏂囦欢涓湭妫€娴嬪埌浠讳綍璇█鍐呭锛屾爣璁颁负鏃犲０闊?)
+                    # 杩斿洖 None 琛ㄧず鏃犲０闊筹紝涓嶇敓鎴愮┖瀛楀箷鏂囦欢
                     return None, None
                 else:
                     raise e
 
-            # 先遍历一次获取总时长，用于百分比进度显示
+            # 鍏堥亶鍘嗕竴娆¤幏鍙栨€绘椂闀匡紝鐢ㄤ簬鐧惧垎姣旇繘搴︽樉绀?
             seg_list = list(segments)
             total_duration = seg_list[-1].end if seg_list else 0
             total_count = len(seg_list)
@@ -610,11 +610,11 @@ class AutoSubv3(_PluginBase):
             last_pct = 0
             for segment in seg_list:
                 if self._event.is_set():
-                    logger.info(f"[Whisper音频提取文本] {video_name} - 用户中断，停止提取")
-                    raise UserInterruptException(f"用户中断当前任务")
+                    logger.info(f"[Whisper闊抽鎻愬彇鏂囨湰] {video_name} - 鐢ㄦ埛涓柇锛屽仠姝㈡彁鍙?)
+                    raise UserInterruptException(f"鐢ㄦ埛涓柇褰撳墠浠诲姟")
                 pct = int(segment.end / total_duration * 100) if total_duration > 0 else 0
                 if pct >= last_pct + 10:
-                    logger.info(f"[Whisper音频提取文本] {video_name} - 提取进度：{pct}%（{segment.end:.1f}s / {total_duration:.1f}s）")
+                    logger.info(f"[Whisper闊抽鎻愬彇鏂囨湰] {video_name} - 鎻愬彇杩涘害锛歿pct}%锛坽segment.end:.1f}s / {total_duration:.1f}s锛?)
                     last_pct = pct
                 if segment.words:
                     for word in segment.words:
@@ -629,54 +629,54 @@ class AutoSubv3(_PluginBase):
                                              start=timedelta(seconds=segment.start),
                                              end=timedelta(seconds=segment.end),
                                              content=segment.text))
-            # 按最大时长和最大字数合并
+            # 鎸夋渶澶ф椂闀垮拰鏈€澶у瓧鏁板悎骞?
             subs = self.__merge_srt(subs)
             
-            # 计算提取耗时
+            # 璁＄畻鎻愬彇鑰楁椂
             extract_elapsed = time.time() - extract_start_time
-            logger.info(f"[Whisper音频提取文本] {video_name} - 提取完成，共处理 {total_count} 段，合并后 {idx} 条字幕，耗时 {extract_elapsed:.1f} 秒")
+            logger.info(f"[Whisper闊抽鎻愬彇鏂囨湰] {video_name} - 鎻愬彇瀹屾垚锛屽叡澶勭悊 {total_count} 娈碉紝鍚堝苟鍚?{idx} 鏉″瓧骞曪紝鑰楁椂 {extract_elapsed:.1f} 绉?)
             
-            # 性能警告（基于提取时长与视频时长的比例）
+            # 鎬ц兘璀﹀憡锛堝熀浜庢彁鍙栨椂闀夸笌瑙嗛鏃堕暱鐨勬瘮渚嬶級
             if total_duration > 0:
                 ratio = extract_elapsed / total_duration
                 if ratio >= 0.8:
-                    logger.warning(f"[Whisper音频提取文本] {video_name} - 提取耗时过长（{extract_elapsed:.1f}秒 / 视频{total_duration:.1f}秒 = {ratio:.0%}），强烈建议：1) 使用更快模型（tiny/base）2) 启用GPU加速 3) 检查CPU负载")
+                    logger.warning(f"[Whisper闊抽鎻愬彇鏂囨湰] {video_name} - 鎻愬彇鑰楁椂杩囬暱锛坽extract_elapsed:.1f}绉?/ 瑙嗛{total_duration:.1f}绉?= {ratio:.0%}锛夛紝寮虹儓寤鸿锛?) 浣跨敤鏇村揩妯″瀷锛坱iny/base锛?) 鍚敤GPU鍔犻€?3) 妫€鏌PU璐熻浇")
                 elif ratio >= 0.6:
-                    logger.warning(f"[Whisper音频提取文本] {video_name} - 提取耗时较长（{extract_elapsed:.1f}秒 / 视频{total_duration:.1f}秒 = {ratio:.0%}），建议：1) 使用更快模型（tiny/base）2) 启用GPU加速")
+                    logger.warning(f"[Whisper闊抽鎻愬彇鏂囨湰] {video_name} - 鎻愬彇鑰楁椂杈冮暱锛坽extract_elapsed:.1f}绉?/ 瑙嗛{total_duration:.1f}绉?= {ratio:.0%}锛夛紝寤鸿锛?) 浣跨敤鏇村揩妯″瀷锛坱iny/base锛?) 鍚敤GPU鍔犻€?)
                 elif ratio >= 0.3:
-                    logger.info(f"[Whisper音频提取文本] {video_name} - 提取速度可优化（{extract_elapsed:.1f}秒 / 视频{total_duration:.1f}秒 = {ratio:.0%}），可考虑使用更快模型（tiny/base）")
+                    logger.info(f"[Whisper闊抽鎻愬彇鏂囨湰] {video_name} - 鎻愬彇閫熷害鍙紭鍖栵紙{extract_elapsed:.1f}绉?/ 瑙嗛{total_duration:.1f}绉?= {ratio:.0%}锛夛紝鍙€冭檻浣跨敤鏇村揩妯″瀷锛坱iny/base锛?)
             
-            # 检查是否提取到了有效字幕内容
+            # 妫€鏌ユ槸鍚︽彁鍙栧埌浜嗘湁鏁堝瓧骞曞唴瀹?
             if not subs:
-                logger.info(f"[Whisper音频提取文本] {video_name} - 提取的字幕内容为空，标记为无声音")
+                logger.info(f"[Whisper闊抽鎻愬彇鏂囨湰] {video_name} - 鎻愬彇鐨勫瓧骞曞唴瀹逛负绌猴紝鏍囪涓烘棤澹伴煶")
                 return None, None
                 
             self.__save_srt(f"{audio_file}.srt", subs)
-            logger.info(f"[Whisper音频提取文本] {video_name} - 音轨转字幕完成")
+            logger.info(f"[Whisper闊抽鎻愬彇鏂囨湰] {video_name} - 闊宠建杞瓧骞曞畬鎴?)
             return True, lang
         except ImportError:
-            logger.warn(f"[Whisper音频提取文本] faster-whisper 未安装，不进行处理")
+            logger.warn(f"[Whisper闊抽鎻愬彇鏂囨湰] faster-whisper 鏈畨瑁咃紝涓嶈繘琛屽鐞?)
             return False, None
         except Exception as e:
             traceback.print_exc()
-            logger.error(f"[Whisper音频提取文本] {video_name} - 处理异常：{e}")
+            logger.error(f"[Whisper闊抽鎻愬彇鏂囨湰] {video_name} - 澶勭悊寮傚父锛歿e}")
             return False, None
 
     def __generate_subtitle(self, video_file, subtitle_file, enable_asr=True):
         """
-        生成字幕
-        :param video_file: 视频文件
-        :param subtitle_file: 字幕文件, 不包含后缀
-        :return: 生成成功返回True，字幕语言,字幕路径，否则返回False, None, None
+        鐢熸垚瀛楀箷
+        :param video_file: 瑙嗛鏂囦欢
+        :param subtitle_file: 瀛楀箷鏂囦欢, 涓嶅寘鍚悗缂€
+        :return: 鐢熸垚鎴愬姛杩斿洖True锛屽瓧骞曡瑷€,瀛楀箷璺緞锛屽惁鍒欒繑鍥濬alse, None, None
         """
-        # 获取文件元数据
-        logger.info(f"[GenSub] 获取视频元数据：{video_file}")
+        # 鑾峰彇鏂囦欢鍏冩暟鎹?
+        logger.info(f"[GenSub] 鑾峰彇瑙嗛鍏冩暟鎹細{video_file}")
         video_meta = Ffmpeg().get_video_metadata(video_file)
         if not video_meta:
-            logger.error(f"[GenSub] 获取视频元数据失败，跳过后续处理")
+            logger.error(f"[GenSub] 鑾峰彇瑙嗛鍏冩暟鎹け璐ワ紝璺宠繃鍚庣画澶勭悊")
             return False, None, None
-        logger.info(f"[GenSub] 获取视频元数据成功")
-        # 获取字幕语言偏好
+        logger.info(f"[GenSub] 鑾峰彇瑙嗛鍏冩暟鎹垚鍔?)
+        # 鑾峰彇瀛楀箷璇█鍋忓ソ
         if self._translate_preference == "english_only":
             prefer_subtitle_langs = ['en', 'eng']
             strict = True
@@ -687,40 +687,40 @@ class AutoSubv3(_PluginBase):
             prefer_subtitle_langs = None
             strict = False
 
-        # 从视频文件音轨获取语言信息
-        logger.info(f"[GenSub Step 2] 获取音轨信息")
+        # 浠庤棰戞枃浠堕煶杞ㄨ幏鍙栬瑷€淇℃伅
+        logger.info(f"[GenSub Step 2] 鑾峰彇闊宠建淇℃伅")
         ret, audio_index, audio_lang = self.__get_video_prefer_audio(video_meta, prefer_lang=prefer_subtitle_langs)
         if not ret:
-            logger.info(f"字幕源偏好：{self._translate_preference} 获取音轨元数据失败")
+            logger.info(f"瀛楀箷婧愬亸濂斤細{self._translate_preference} 鑾峰彇闊宠建鍏冩暟鎹け璐?)
             return False, None, None
         
-        # 如果开启了自动语言检测，直接设置为auto，跳过metadata的语言信息
+        # 濡傛灉寮€鍚簡鑷姩璇█妫€娴嬶紝鐩存帴璁剧疆涓篴uto锛岃烦杩噈etadata鐨勮瑷€淇℃伅
         if self._auto_detect_language:
-            logger.info("已开启自动语言检测，将使用whisper模型自动识别语言")
+            logger.info("宸插紑鍚嚜鍔ㄨ瑷€妫€娴嬶紝灏嗕娇鐢╳hisper妯″瀷鑷姩璇嗗埆璇█")
             audio_lang = 'auto'
         elif not iso639.find(audio_lang) or not iso639.to_iso639_1(audio_lang):
-            logger.info(f"字幕源偏好：{self._translate_preference} 未从音轨元数据中获取到语言信息")
+            logger.info(f"瀛楀箷婧愬亸濂斤細{self._translate_preference} 鏈粠闊宠建鍏冩暟鎹腑鑾峰彇鍒拌瑷€淇℃伅")
             audio_lang = 'auto'
 
-        # 当字幕源偏好为origin_first时，优先使用音轨语言
+        # 褰撳瓧骞曟簮鍋忓ソ涓簅rigin_first鏃讹紝浼樺厛浣跨敤闊宠建璇█
         if self._translate_preference == "origin_first":
             prefer_subtitle_langs = ['en', 'eng'] if audio_lang == 'auto' else [audio_lang,
                                                                                 iso639.to_iso639_1(audio_lang)]
-        # 获取外挂字幕
-        logger.info(f"[GenSub Step 3] 检查外挂字幕")
-        logger.info(f"使用 {prefer_subtitle_langs} 匹配已有外挂字幕文件 ...")
+        # 鑾峰彇澶栨寕瀛楀箷
+        logger.info(f"[GenSub Step 3] 妫€鏌ュ鎸傚瓧骞?)
+        logger.info(f"浣跨敤 {prefer_subtitle_langs} 鍖归厤宸叉湁澶栨寕瀛楀箷鏂囦欢 ...")
         external_sub_exist, external_sub_lang, exist_sub_name = self.__external_subtitle_exists(video_file,
                                                                                                 prefer_subtitle_langs,
                                                                                                 only_srt=True,
                                                                                                 strict=strict)
-        # 获取内嵌字幕
-        logger.info(f"[GenSub Step 4] 检查内嵌字幕")
-        logger.info(f"使用 {prefer_subtitle_langs} 匹配内嵌字幕文件 ...")
+        # 鑾峰彇鍐呭祵瀛楀箷
+        logger.info(f"[GenSub Step 4] 妫€鏌ュ唴宓屽瓧骞?)
+        logger.info(f"浣跨敤 {prefer_subtitle_langs} 鍖归厤鍐呭祵瀛楀箷鏂囦欢 ...")
         inner_sub_exist, subtitle_index, inner_sub_lang, = self.__get_video_prefer_subtitle(video_meta,
                                                                                             prefer_subtitle_langs,
                                                                                             strict=strict)
 
-        # 优先返回符合语言要求的外部字幕
+        # 浼樺厛杩斿洖绗﹀悎璇█瑕佹眰鐨勫閮ㄥ瓧骞?
         def get_sub_path():
             video_dir, _ = os.path.split(video_file)
             return os.path.join(video_dir, exist_sub_name)
@@ -728,85 +728,85 @@ class AutoSubv3(_PluginBase):
         extract_subtitle = False
         if self._translate_preference == "english_only":
             if external_sub_exist:
-                logger.info(f"字幕源偏好：{self._translate_preference} 外挂字幕存在，字幕语言 {external_sub_lang}")
+                logger.info(f"瀛楀箷婧愬亸濂斤細{self._translate_preference} 澶栨寕瀛楀箷瀛樺湪锛屽瓧骞曡瑷€ {external_sub_lang}")
                 return True, iso639.to_iso639_1(external_sub_lang), get_sub_path()
             elif inner_sub_exist:
-                logger.info(f"字幕源偏好：{self._translate_preference} 内嵌字幕存在，字幕语言 {inner_sub_lang}")
+                logger.info(f"瀛楀箷婧愬亸濂斤細{self._translate_preference} 鍐呭祵瀛楀箷瀛樺湪锛屽瓧骞曡瑷€ {inner_sub_lang}")
                 extract_subtitle = True
             else:
-                logger.info(f"字幕源偏好：{self._translate_preference} 未匹配到外挂或内嵌字幕,需要使用asr提取")
+                logger.info(f"瀛楀箷婧愬亸濂斤細{self._translate_preference} 鏈尮閰嶅埌澶栨寕鎴栧唴宓屽瓧骞?闇€瑕佷娇鐢╝sr鎻愬彇")
         else:  # english_first/origin_first
             if external_sub_exist and external_sub_lang in prefer_subtitle_langs:
-                logger.info(f"字幕源偏好：{self._translate_preference} 外挂字幕存在，字幕语言 {external_sub_lang}")
+                logger.info(f"瀛楀箷婧愬亸濂斤細{self._translate_preference} 澶栨寕瀛楀箷瀛樺湪锛屽瓧骞曡瑷€ {external_sub_lang}")
                 return True, iso639.to_iso639_1(external_sub_lang), get_sub_path()
             elif inner_sub_exist and inner_sub_lang in prefer_subtitle_langs:
-                logger.info(f"字幕源偏好：{self._translate_preference} 内嵌字幕存在，字幕语言 {inner_sub_lang}")
+                logger.info(f"瀛楀箷婧愬亸濂斤細{self._translate_preference} 鍐呭祵瀛楀箷瀛樺湪锛屽瓧骞曡瑷€ {inner_sub_lang}")
                 extract_subtitle = True
             elif external_sub_exist:
-                logger.info(f"字幕源偏好：{self._translate_preference} 外挂字幕存在，字幕语言 {external_sub_lang}")
+                logger.info(f"瀛楀箷婧愬亸濂斤細{self._translate_preference} 澶栨寕瀛楀箷瀛樺湪锛屽瓧骞曡瑷€ {external_sub_lang}")
                 return True, iso639.to_iso639_1(external_sub_lang), get_sub_path()
             elif inner_sub_exist:
-                logger.info(f"字幕源偏好：{self._translate_preference} 内嵌字幕存在，字幕语言 {inner_sub_lang}")
+                logger.info(f"瀛楀箷婧愬亸濂斤細{self._translate_preference} 鍐呭祵瀛楀箷瀛樺湪锛屽瓧骞曡瑷€ {inner_sub_lang}")
                 extract_subtitle = True
             else:
-                logger.info(f"字幕源偏好：{self._translate_preference} 未匹配到外挂或内嵌字幕,需要使用asr提取")
-        # 提取内嵌字幕
+                logger.info(f"瀛楀箷婧愬亸濂斤細{self._translate_preference} 鏈尮閰嶅埌澶栨寕鎴栧唴宓屽瓧骞?闇€瑕佷娇鐢╝sr鎻愬彇")
+        # 鎻愬彇鍐呭祵瀛楀箷
         if extract_subtitle:
             inner_sub_lang = iso639.to_iso639_1(inner_sub_lang) \
                 if (inner_sub_lang and iso639.find(inner_sub_lang) and iso639.to_iso639_1(inner_sub_lang)) else 'und'
             extracted_sub_path = f"{subtitle_file}.{inner_sub_lang}.srt"
             Ffmpeg().extract_subtitle_from_video(video_file, extracted_sub_path, subtitle_index)
-            logger.info(f"提取字幕完成：{extracted_sub_path}")
+            logger.info(f"鎻愬彇瀛楀箷瀹屾垚锛歿extracted_sub_path}")
             return True, inner_sub_lang, extracted_sub_path
-        # 使用asr音轨识别字幕
+        # 浣跨敤asr闊宠建璇嗗埆瀛楀箷
         if audio_lang != 'auto':
             audio_lang = iso639.to_iso639_1(audio_lang)
 
         if not enable_asr:
-            logger.info(f"未开启语音识别，且无已有字幕文件，跳过后续处理")
+            logger.info(f"鏈紑鍚闊宠瘑鍒紝涓旀棤宸叉湁瀛楀箷鏂囦欢锛岃烦杩囧悗缁鐞?)
             return False, None, None
 
-        # 清理异常退出的临时文件
+        # 娓呯悊寮傚父閫€鍑虹殑涓存椂鏂囦欢
         tempdir = tempfile.gettempdir()
         for file in os.listdir(tempdir):
             if file.startswith('autosub-'):
                 os.remove(os.path.join(tempdir, file))
 
         with tempfile.NamedTemporaryFile(prefix='autosub-', suffix='.wav', delete=True) as audio_file:
-            # 提取音频
-            logger.info(f"[GenSub Step 5a] 提取音频：{audio_file.name}")
+            # 鎻愬彇闊抽
+            logger.info(f"[GenSub Step 5a] 鎻愬彇闊抽锛歿audio_file.name}")
             Ffmpeg().extract_wav_from_video(video_file, audio_file.name, audio_index)
-            logger.info(f"[GenSub Step 5a] 提取音频完成")
-            logger.info(f"[GenSub Step 5b] 开始Whisper识别")
+            logger.info(f"[GenSub Step 5a] 鎻愬彇闊抽瀹屾垚")
+            logger.info(f"[GenSub Step 5b] 寮€濮媁hisper璇嗗埆")
 
-            # 生成字幕
-            logger.info(f"[GenSub Step 5] 开始Whisper识别, 语言 {audio_lang}")
+            # 鐢熸垚瀛楀箷
+            logger.info(f"[GenSub Step 5] 寮€濮媁hisper璇嗗埆, 璇█ {audio_lang}")
             ret, lang = self.__do_speech_recognition(audio_lang, audio_file.name, video_file)
             if ret == "skip_chinese":
-                logger.info(f"视频识别为中文且已开启中文视频不翻译，跳过字幕生成：{video_file}")
+                logger.info(f"瑙嗛璇嗗埆涓轰腑鏂囦笖宸插紑鍚腑鏂囪棰戜笉缈昏瘧锛岃烦杩囧瓧骞曠敓鎴愶細{video_file}")
                 self.add_skip_chinese_video(video_file)
                 return False, "skip_chinese", None
             elif ret:
-                logger.info(f"生成字幕成功，原始语言：{lang}")
-                # 复制字幕文件
+                logger.info(f"鐢熸垚瀛楀箷鎴愬姛锛屽師濮嬭瑷€锛歿lang}")
+                # 澶嶅埗瀛楀箷鏂囦欢
                 SystemUtils.copy(Path(f"{audio_file.name}.srt"), Path(f"{subtitle_file}.{lang}.srt"))
-                logger.info(f"复制字幕文件：{subtitle_file}.{lang}.srt")
-                # 删除临时文件
+                logger.info(f"澶嶅埗瀛楀箷鏂囦欢锛歿subtitle_file}.{lang}.srt")
+                # 鍒犻櫎涓存椂鏂囦欢
                 os.remove(f"{audio_file.name}.srt")
                 return ret, lang, Path(f"{subtitle_file}.{lang}.srt")
             elif ret is None:
-                # 无声音，跳过并记录
-                logger.info(f"视频无声音，跳过字幕生成：{video_file}")
+                # 鏃犲０闊筹紝璺宠繃骞惰褰?
+                logger.info(f"瑙嗛鏃犲０闊筹紝璺宠繃瀛楀箷鐢熸垚锛歿video_file}")
                 self.add_skipped_video(video_file)
                 return False, None, None
             else:
-                logger.error("生成字幕失败")
+                logger.error("鐢熸垚瀛楀箷澶辫触")
                 return False, None, None
 
     @staticmethod
     def __get_library_files(in_path, exclude_path=None):
         """
-        获取目录媒体文件列表
+        鑾峰彇鐩綍濯掍綋鏂囦欢鍒楄〃
         """
         if not os.path.isdir(in_path):
             yield in_path
@@ -819,15 +819,15 @@ class AutoSubv3(_PluginBase):
 
             for file in files:
                 cur_path = os.path.join(root, file)
-                # 检查后缀
+                # 妫€鏌ュ悗缂€
                 if os.path.splitext(file)[-1].lower() in settings.RMT_MEDIAEXT:
                     yield cur_path
 
     @staticmethod
     def __load_srt(file_path):
         """
-        加载字幕文件
-        :param file_path: 字幕文件路径
+        鍔犺浇瀛楀箷鏂囦欢
+        :param file_path: 瀛楀箷鏂囦欢璺緞
         :return:
         """
         with open(file_path, 'r', encoding="utf8") as f:
@@ -837,9 +837,9 @@ class AutoSubv3(_PluginBase):
     @staticmethod
     def __save_srt(file_path, srt_data):
         """
-        保存字幕文件
-        :param file_path: 字幕文件路径
-        :param srt_data: 字幕数据
+        淇濆瓨瀛楀箷鏂囦欢
+        :param file_path: 瀛楀箷鏂囦欢璺緞
+        :param srt_data: 瀛楀箷鏁版嵁
         :return:
         """
         with open(file_path, 'w', encoding="utf8") as f:
@@ -847,10 +847,10 @@ class AutoSubv3(_PluginBase):
 
     def __merge_srt(self, subtitle_data, max_duration=None, max_chars=None):
         """
-        将单词级字幕按句子合并，并强制按最大时长/字数切分
-        :param subtitle_data: 单词级字幕列表
-        :param max_duration: 每段最大时长（秒），默认用 self._max_segment_duration
-        :param max_chars: 每段最大字符数，默认用 self._max_segment_chars
+        灏嗗崟璇嶇骇瀛楀箷鎸夊彞瀛愬悎骞讹紝骞跺己鍒舵寜鏈€澶ф椂闀?瀛楁暟鍒囧垎
+        :param subtitle_data: 鍗曡瘝绾у瓧骞曞垪琛?
+        :param max_duration: 姣忔鏈€澶ф椂闀匡紙绉掞級锛岄粯璁ょ敤 self._max_segment_duration
+        :param max_chars: 姣忔鏈€澶у瓧绗︽暟锛岄粯璁ょ敤 self._max_segment_chars
         :return:
         """
         if max_duration is None:
@@ -861,7 +861,7 @@ class AutoSubv3(_PluginBase):
         subtitle_data = copy.deepcopy(subtitle_data)
         merged_subtitle = []
         sentence_end = True
-        end_tokens = ['.', '!', '?', '。', '！', '？', '。"', '！"', '？"', '."', '!"', '?"']
+        end_tokens = ['.', '!', '?', '銆?, '锛?, '锛?, '銆?', '锛?', '锛?', '."', '!"', '?"']
         for index, item in enumerate(subtitle_data):
             content = item.content.replace('\n', ' ').strip()
             parse = etree.HTML(content)
@@ -876,14 +876,14 @@ class AutoSubv3(_PluginBase):
                 sentence_end = True
                 continue
 
-            # 计算当前字幕时长（秒）
+            # 璁＄畻褰撳墠瀛楀箷鏃堕暱锛堢锛?
             item_duration = (item.end - item.start).total_seconds()
 
             if not merged_subtitle or sentence_end:
                 merged_subtitle.append(item)
                 sentence_end = False
             else:
-                # 强制切分条件：当前内容 + 新内容超过字数限制，或者累计时长超过最大时长
+                # 寮哄埗鍒囧垎鏉′欢锛氬綋鍓嶅唴瀹?+ 鏂板唴瀹硅秴杩囧瓧鏁伴檺鍒讹紝鎴栬€呯疮璁℃椂闀胯秴杩囨渶澶ф椂闀?
                 existing_len = len(merged_subtitle[-1].content)
                 force_split = False
                 if existing_len + len(content) > max_chars:
@@ -909,14 +909,14 @@ class AutoSubv3(_PluginBase):
     @staticmethod
     def __get_video_prefer_audio(video_meta, prefer_lang=None):
         """
-        获取视频的首选音轨，如果有多音轨， 优先指定语言音轨，否则获取默认音轨
+        鑾峰彇瑙嗛鐨勯閫夐煶杞紝濡傛灉鏈夊闊宠建锛?浼樺厛鎸囧畾璇█闊宠建锛屽惁鍒欒幏鍙栭粯璁ら煶杞?
         :param video_meta
         :return:
         """
         if type(prefer_lang) == str and prefer_lang:
             prefer_lang = [prefer_lang]
 
-        # 获取首选音轨
+        # 鑾峰彇棣栭€夐煶杞?
         audio_lang = None
         audio_index = None
         audio_stream = filter(lambda x: x.get('codec_type') == 'audio', video_meta.get('streams', []))
@@ -924,32 +924,32 @@ class AutoSubv3(_PluginBase):
             if not audio_index:
                 audio_index = index
                 audio_lang = stream.get('tags', {}).get('language', 'und')
-            # 获取默认音轨
+            # 鑾峰彇榛樿闊宠建
             if stream.get('disposition', {}).get('default'):
                 audio_index = index
                 audio_lang = stream.get('tags', {}).get('language', 'und')
-            # 获取指定语言音轨
+            # 鑾峰彇鎸囧畾璇█闊宠建
             if prefer_lang and stream.get('tags', {}).get('language') in prefer_lang:
                 audio_index = index
                 audio_lang = stream.get('tags', {}).get('language', 'und')
                 break
 
-        # 如果没有音轨， 则不处理
+        # 濡傛灉娌℃湁闊宠建锛?鍒欎笉澶勭悊
         if audio_index is None:
-            logger.warn(f"没有音轨，不进行处理")
+            logger.warn(f"娌℃湁闊宠建锛屼笉杩涜澶勭悊")
             return False, None, None
 
-        logger.info(f"选中音轨信息：{audio_index}, {audio_lang}")
+        logger.info(f"閫変腑闊宠建淇℃伅锛歿audio_index}, {audio_lang}")
         return True, audio_index, audio_lang
 
     @staticmethod
     def __get_video_prefer_subtitle(video_meta, prefer_lang=None, strict=False, only_srt=True):
         """
-        获取视频的首选字幕。优先级：1.字幕为偏好语言 2.默认字幕 3.第一个字幕
-        :param video_meta: 视频元数据
-        :param prefer_lang: 字幕偏好语言
-        :param strict: 是否严格模式。如果指定了偏好语言，严格模式下必须返回偏好语言的字幕。
-        :return: (是否命中字幕，字幕index，字幕语言)
+        鑾峰彇瑙嗛鐨勯閫夊瓧骞曘€備紭鍏堢骇锛?.瀛楀箷涓哄亸濂借瑷€ 2.榛樿瀛楀箷 3.绗竴涓瓧骞?
+        :param video_meta: 瑙嗛鍏冩暟鎹?
+        :param prefer_lang: 瀛楀箷鍋忓ソ璇█
+        :param strict: 鏄惁涓ユ牸妯″紡銆傚鏋滄寚瀹氫簡鍋忓ソ璇█锛屼弗鏍兼ā寮忎笅蹇呴』杩斿洖鍋忓ソ璇█鐨勫瓧骞曘€?
+        :return: (鏄惁鍛戒腑瀛楀箷锛屽瓧骞昳ndex锛屽瓧骞曡瑷€)
         """
         # from https://wiki.videolan.org/Subtitles_codecs/
         """
@@ -984,16 +984,16 @@ class AutoSubv3(_PluginBase):
         if prefer_lang is str and prefer_lang:
             prefer_lang = [prefer_lang]
 
-        # 获取首选字幕
+        # 鑾峰彇棣栭€夊瓧骞?
         subtitle_lang = None
         subtitle_index = None
         subtitle_score = 0
         subtitle_stream = filter(lambda x: x.get('codec_type') == 'subtitle', video_meta.get('streams', []))
         for index, stream in enumerate(subtitle_stream):
-            # 如果是强制字幕，则跳过
+            # 濡傛灉鏄己鍒跺瓧骞曪紝鍒欒烦杩?
             if stream.get('disposition', {}).get('forced'):
                 continue
-            # image-based 字幕，跳过
+            # image-based 瀛楀箷锛岃烦杩?
             if only_srt and (
                     'width' in stream
                     or stream.get('codec_name') in image_based_subtitle_codecs
@@ -1001,7 +1001,7 @@ class AutoSubv3(_PluginBase):
                 continue
             cur_is_default = stream.get('disposition', {}).get('default')
             cur_lang = stream.get('tags', {}).get('language')
-            # 计算当前字幕得分：1.字幕为偏好语言*4 2.默认字幕*2 3.第一个字幕*1
+            # 璁＄畻褰撳墠瀛楀箷寰楀垎锛?.瀛楀箷涓哄亸濂借瑷€*4 2.榛樿瀛楀箷*2 3.绗竴涓瓧骞?1
             cur_score = 0
             if prefer_lang and cur_lang in prefer_lang:
                 cur_score += 4
@@ -1009,60 +1009,60 @@ class AutoSubv3(_PluginBase):
                 cur_score += 2
             if subtitle_index is None:
                 cur_score += 1
-                # 第一个字幕初始化为默认字幕
+                # 绗竴涓瓧骞曞垵濮嬪寲涓洪粯璁ゅ瓧骞?
                 subtitle_lang, subtitle_index, subtitle_score = cur_lang, index, cur_score
             if cur_score > subtitle_score:
                 subtitle_lang, subtitle_index, subtitle_score = cur_lang, index, cur_score
 
-        # 未找到字幕
+        # 鏈壘鍒板瓧骞?
         if subtitle_index is None:
-            logger.debug(f"没有内嵌字幕")
+            logger.debug(f"娌℃湁鍐呭祵瀛楀箷")
             return False, None, None
         if strict and prefer_lang and subtitle_lang not in prefer_lang:
-            logger.warn(f"严格模式,没有偏好语言的字幕")
+            logger.warn(f"涓ユ牸妯″紡,娌℃湁鍋忓ソ璇█鐨勫瓧骞?)
             return False, None, None
-        logger.debug(f"命中内嵌字幕信息：{subtitle_index}, {subtitle_lang}, score:{subtitle_score}")
+        logger.debug(f"鍛戒腑鍐呭祵瀛楀箷淇℃伅锛歿subtitle_index}, {subtitle_lang}, score:{subtitle_score}")
         return True, subtitle_index, subtitle_lang
 
     @staticmethod
     def __is_noisy_subtitle(content):
         """
-        判断是否为背景音等字幕
+        鍒ゆ柇鏄惁涓鸿儗鏅煶绛夊瓧骞?
         :param content:
         :return:
         """
-        noisy_tokens = [('(', ')'), ('[', ']'), ('{', '}'), ('【', '】'), ('♪', '♪'), ('♫', '♫'), ('♪♪', '♪♪')]
+        noisy_tokens = [('(', ')'), ('[', ']'), ('{', '}'), ('銆?, '銆?), ('鈾?, '鈾?), ('鈾?, '鈾?), ('鈾櫔', '鈾櫔')]
         return any(content.startswith(t[0]) and content.endswith(t[1]) for t in noisy_tokens)
 
     def __get_context(self, all_subs: list, target_indices: List[int], is_batch: bool) -> str:
-        """通用上下文获取方法"""
+        """閫氱敤涓婁笅鏂囪幏鍙栨柟娉?""
         min_idx = max(0, min(target_indices) - self._context_window)
         max_idx = min(len(all_subs) - 1, max(target_indices) + self._context_window) if is_batch else min(
             target_indices)
 
         context = []
         for idx in range(min_idx, max_idx + 1):
-            status = "[待译]" if idx in target_indices else ""
+            status = "[寰呰瘧]" if idx in target_indices else ""
             content = all_subs[idx].content.replace('\n', ' ').strip()
             context.append(f"{status}{content}")
 
         return "\n".join(context)
 
     def __process_items(self, all_subs: list, items: list) -> list:
-        """统一处理入口（支持批量和单条）"""
+        """缁熶竴澶勭悊鍏ュ彛锛堟敮鎸佹壒閲忓拰鍗曟潯锛?""
         if self._enable_batch and len(items) > 1:
             return self.__process_batch(all_subs, items)
         return [self.__process_single(all_subs, item) for item in items]
 
     def __translate_to_zh(self, text: str, context: str = None, max_retries: int = None) -> str:
         if self._event.is_set():
-            raise UserInterruptException("用户中断当前任务")
+            raise UserInterruptException("鐢ㄦ埛涓柇褰撳墠浠诲姟")
         if max_retries is None:
             max_retries = self._max_retries
         return self._openai.translate_to_zh(text, context, max_retries=max_retries)
 
     def __process_batch(self, all_subs: list, batch: list) -> list:
-        """批量处理逻辑"""
+        """鎵归噺澶勭悊閫昏緫"""
         indices = [all_subs.index(item) for item in batch]
         context = self.__get_context(all_subs, indices, is_batch=True) if self._context_window > 0 else None
         batch_text = '\n'.join([item.content for item in batch])
@@ -1074,19 +1074,19 @@ class AutoSubv3(_PluginBase):
 
             translated = [line.strip() for line in result.split('\n') if line.strip()]
             if len(translated) != len(batch):
-                raise Exception(f"批次行数不匹配 {len(translated)}/{len(batch)}")
+                raise Exception(f"鎵规琛屾暟涓嶅尮閰?{len(translated)}/{len(batch)}")
 
             for item, trans in zip(batch, translated):
                 item.content = f"{trans}\n{item.content}"
             self._stats['batch_success'] += len(batch)
             return batch
         except Exception as e:
-            logger.warning(f"[翻译] 批量翻译失败：{e}，降级逐行翻译")
+            logger.warning(f"[缈昏瘧] 鎵归噺缈昏瘧澶辫触锛歿e}锛岄檷绾ч€愯缈昏瘧")
             self._stats['batch_fail'] += 1
             return [self.__process_single(all_subs, item) for item in batch]
 
     def __process_single(self, all_subs: List[srt.Subtitle], item: srt.Subtitle) -> srt.Subtitle:
-        """单条处理逻辑"""
+        """鍗曟潯澶勭悊閫昏緫"""
         idx = all_subs.index(item)
         context = self.__get_context(all_subs, [idx], is_batch=False) if self._context_window > 0 else None
         success, trans = self.__translate_to_zh(item.content, context)
@@ -1100,32 +1100,32 @@ class AutoSubv3(_PluginBase):
             return item
         else:
             if self._subtitle_output_mode == 'chinese_only':
-                item.content = f"[翻译失败]"
+                item.content = f"[缈昏瘧澶辫触]"
             else:
-                item.content = f"[翻译失败]\n{item.content}"
+                item.content = f"[缈昏瘧澶辫触]\n{item.content}"
             return item
 
     def __translate_zh_subtitle(self, source_lang: str, source_subtitle: str, dest_subtitle: str,
                                   output_mode: str = None):
         """
-        翻译字幕为中文
-        :param source_lang: 源语言
-        :param source_subtitle: 源字幕文件路径
-        :param dest_subtitle: 目标字幕文件路径
-        :param output_mode: 输出模式，'bilingual'=双语（翻译+原文），'chinese_only'=纯中文
+        缈昏瘧瀛楀箷涓轰腑鏂?
+        :param source_lang: 婧愯瑷€
+        :param source_subtitle: 婧愬瓧骞曟枃浠惰矾寰?
+        :param dest_subtitle: 鐩爣瀛楀箷鏂囦欢璺緞
+        :param output_mode: 杈撳嚭妯″紡锛?bilingual'=鍙岃锛堢炕璇?鍘熸枃锛夛紝'chinese_only'=绾腑鏂?
         """
         self._stats = {'total': 0, 'batch_success': 0, 'batch_fail': 0, 'line_fallback': 0}
-        # 如果检测到的字幕语言是中文，强制使用纯中文字幕模式（双语模式没必要）
-        # 但如果"中文视频不翻译"开关已开，主流程会在进入这里之前直接跳过翻译
+        # 濡傛灉妫€娴嬪埌鐨勫瓧骞曡瑷€鏄腑鏂囷紝寮哄埗浣跨敤绾腑鏂囧瓧骞曟ā寮忥紙鍙岃妯″紡娌″繀瑕侊級
+        # 浣嗗鏋?涓枃瑙嗛涓嶇炕璇?寮€鍏冲凡寮€锛屼富娴佺▼浼氬湪杩涘叆杩欓噷涔嬪墠鐩存帴璺宠繃缈昏瘧
         if not self._skip_chinese and self.__is_chinese_lang(source_lang):
-            logger.info(f"检测字幕语言为中文，强制使用纯中文字幕输出模式")
+            logger.info(f"妫€娴嬪瓧骞曡瑷€涓轰腑鏂囷紝寮哄埗浣跨敤绾腑鏂囧瓧骞曡緭鍑烘ā寮?)
             self._subtitle_output_mode = 'chinese_only'
         subs = self.__load_srt(source_subtitle)
-        valid_subs = subs  # ASR阶段已统一做word-level合并，翻译时不再重复合并
+        valid_subs = subs  # ASR闃舵宸茬粺涓€鍋歸ord-level鍚堝苟锛岀炕璇戞椂涓嶅啀閲嶅鍚堝苟
         
         if not valid_subs:
-            logger.warning("字幕文件为空或没有有效的字幕条目，跳过翻译")
-            # 创建一个空的字幕文件
+            logger.warning("瀛楀箷鏂囦欢涓虹┖鎴栨病鏈夋湁鏁堢殑瀛楀箷鏉＄洰锛岃烦杩囩炕璇?)
+            # 鍒涘缓涓€涓┖鐨勫瓧骞曟枃浠?
             self.__save_srt(dest_subtitle, [])
             return
             
@@ -1134,67 +1134,67 @@ class AutoSubv3(_PluginBase):
         if self._enable_batch:
             processed = self.__translate_parallel(valid_subs)
         else:
-            logger.info(f"[翻译] 逐条模式 - 共 {len(valid_subs)} 条（效果更好，速度较慢）")
+            logger.info(f"[缈昏瘧] 閫愭潯妯″紡 - 鍏?{len(valid_subs)} 鏉★紙鏁堟灉鏇村ソ锛岄€熷害杈冩參锛?)
             processed = [self.__process_single(valid_subs, item) for item in valid_subs]
         self.__save_srt(dest_subtitle, processed)
         
-        # 计算翻译耗时和速度
+        # 璁＄畻缈昏瘧鑰楁椂鍜岄€熷害
         translate_elapsed = time.time() - translate_start_time
         speed = len(valid_subs) / translate_elapsed if translate_elapsed > 0 else 0
         
-        # 统计报告
+        # 缁熻鎶ュ憡
         batch_success_count = self._stats['batch_success']
         batch_fail_count = self._stats['batch_fail']
         line_fallback_count = self._stats['line_fallback']
         
-        # 构建日志消息
-        log_msg = f"[翻译] 完成 - 总计 {self._stats['total']} 条，耗时 {translate_elapsed:.1f} 秒，速度 {speed:.1f} 条/秒"
+        # 鏋勫缓鏃ュ織娑堟伅
+        log_msg = f"[缈昏瘧] 瀹屾垚 - 鎬昏 {self._stats['total']} 鏉★紝鑰楁椂 {translate_elapsed:.1f} 绉掞紝閫熷害 {speed:.1f} 鏉?绉?
         if self._enable_batch:
-            log_msg += f"，批量成功 {batch_success_count} 批"
+            log_msg += f"锛屾壒閲忔垚鍔?{batch_success_count} 鎵?
             if batch_fail_count > 0:
-                log_msg += f"，批量失败 {batch_fail_count} 批（降级成功 {line_fallback_count} 条）"
+                log_msg += f"锛屾壒閲忓け璐?{batch_fail_count} 鎵癸紙闄嶇骇鎴愬姛 {line_fallback_count} 鏉★級"
         
         logger.info(log_msg)
         
-        # 批量失败次数过多时警告
+        # 鎵归噺澶辫触娆℃暟杩囧鏃惰鍛?
         if self._enable_batch and batch_fail_count > 0:
             fail_rate = batch_fail_count / (batch_success_count + batch_fail_count) if (batch_success_count + batch_fail_count) > 0 else 0
             if fail_rate > 0.5:
-                logger.warning(f"[翻译] 批量失败率过高（{fail_rate:.0%}），建议检查：1) LLM API稳定性 2) 降低batch_size 3) 检查prompt格式")
+                logger.warning(f"[缈昏瘧] 鎵归噺澶辫触鐜囪繃楂橈紙{fail_rate:.0%}锛夛紝寤鸿妫€鏌ワ細1) LLM API绋冲畾鎬?2) 闄嶄綆batch_size 3) 妫€鏌rompt鏍煎紡")
 
     def __translate_parallel(self, valid_subs: list):
         """
-        并行翻译字幕，使用 ThreadPoolExecutor 多线程并发处理批次
-        批次按原始索引排序合并，保证顺序正确
+        骞惰缈昏瘧瀛楀箷锛屼娇鐢?ThreadPoolExecutor 澶氱嚎绋嬪苟鍙戝鐞嗘壒娆?
+        鎵规鎸夊師濮嬬储寮曟帓搴忓悎骞讹紝淇濊瘉椤哄簭姝ｇ‘
         """
         total = len(valid_subs)
         batch_size = self._batch_size
         workers = self._parallel_workers
 
-        # 将字幕拆分为批次，每批包含 (全局索引, 字幕对象)
+        # 灏嗗瓧骞曟媶鍒嗕负鎵规锛屾瘡鎵瑰寘鍚?(鍏ㄥ眬绱㈠紩, 瀛楀箷瀵硅薄)
         batches = []
         for i in range(0, total, batch_size):
             batch_items = valid_subs[i:i + batch_size]
-            # 建立 全局索引->字幕对象 的映射
+            # 寤虹珛 鍏ㄥ眬绱㈠紩->瀛楀箷瀵硅薄 鐨勬槧灏?
             batch_map = {}
             for j, item in enumerate(batch_items):
-                batch_map[i + j] = item  # 用全局索引 i+j
+                batch_map[i + j] = item  # 鐢ㄥ叏灞€绱㈠紩 i+j
             batches.append((i, batch_map))
 
-        logger.info(f"[翻译] 并行模式 - 共 {len(batches)} 批次，每批 {batch_size} 条，并发 {workers} 线程")
+        logger.info(f"[缈昏瘧] 骞惰妯″紡 - 鍏?{len(batches)} 鎵规锛屾瘡鎵?{batch_size} 鏉★紝骞跺彂 {workers} 绾跨▼")
 
-        results = {}  # 最终结果：全局idx -> 处理后的字幕对象
+        results = {}  # 鏈€缁堢粨鏋滐細鍏ㄥ眬idx -> 澶勭悊鍚庣殑瀛楀箷瀵硅薄
 
         def process_batch(batch_start_idx, batch_map, stats):
-            """在子线程中执行：尝试批量翻译，失败则降级单行"""
+            """鍦ㄥ瓙绾跨▼涓墽琛岋細灏濊瘯鎵归噺缈昏瘧锛屽け璐ュ垯闄嶇骇鍗曡"""
             batch_list = list(batch_map.values())
             indices = list(batch_map.keys())
 
-            # 尝试批量翻译（JSON结构化输出，按id校验）
+            # 灏濊瘯鎵归噺缈昏瘧锛圝SON缁撴瀯鍖栬緭鍑猴紝鎸塱d鏍￠獙锛?
             try:
                 batch_texts = [item.content.strip() for item in batch_list]
                 ret, translations = self._openai.translate_batch_to_zh(batch_texts)
-                # 严格检查：ret=True 且 translations 不为空 且 所有条目均非 None
+                # 涓ユ牸妫€鏌ワ細ret=True 涓?translations 涓嶄负绌?涓?鎵€鏈夋潯鐩潎闈?None
                 if ret and translations and all(t is not None for t in translations):
                     for item, trans in zip(batch_list, translations):
                         if self._subtitle_output_mode == 'chinese_only':
@@ -1205,15 +1205,15 @@ class AutoSubv3(_PluginBase):
                     stats["line_ok"] += len(translations)
                     return {gidx: batch_map[gidx] for gidx in indices}
             except Exception as e:
-                logger.debug(f"批次 {batch_start_idx} 批量翻译异常，降级单行：{e}")
+                logger.debug(f"鎵规 {batch_start_idx} 鎵归噺缈昏瘧寮傚父锛岄檷绾у崟琛岋細{e}")
 
-            # 降级：逐行翻译（fallback单条，仅在批次失败后执行）
-            # 逐条调用翻译（不走批量），失败时最多再重试1次，避免对已失败的条目无限重试
+            # 闄嶇骇锛氶€愯缈昏瘧锛坒allback鍗曟潯锛屼粎鍦ㄦ壒娆″け璐ュ悗鎵ц锛?
+            # 閫愭潯璋冪敤缈昏瘧锛堜笉璧版壒閲忥級锛屽け璐ユ椂鏈€澶氬啀閲嶈瘯1娆★紝閬垮厤瀵瑰凡澶辫触鐨勬潯鐩棤闄愰噸璇?
             line_ok_count = 0
             for gidx in indices:
                 item = batch_map[gidx]
                 context = self.__get_context(valid_subs, [gidx], is_batch=False) if self._context_window > 0 else None
-                # 单条翻译，max_retries=1（只重试1次，避免过度调用）
+                # 鍗曟潯缈昏瘧锛宮ax_retries=1锛堝彧閲嶈瘯1娆★紝閬垮厤杩囧害璋冪敤锛?
                 success, trans = self.__translate_to_zh(item.content, context, max_retries=1)
                 if success:
                     line_ok_count += 1
@@ -1222,21 +1222,21 @@ class AutoSubv3(_PluginBase):
                     else:
                         item.content = f"{trans}\n{item.content}"
                 else:
-                    # 单条翻译失败，不重试（避免浪费调用次数）
+                    # 鍗曟潯缈昏瘧澶辫触锛屼笉閲嶈瘯锛堥伩鍏嶆氮璐硅皟鐢ㄦ鏁帮級
                     if self._subtitle_output_mode == 'chinese_only':
-                        item.content = "[翻译失败]"
+                        item.content = "[缈昏瘧澶辫触]"
                     else:
-                        item.content = f"[翻译失败]\n{item.content}"
+                        item.content = f"[缈昏瘧澶辫触]\n{item.content}"
             stats["line_ok"] += line_ok_count
             stats["batch_fail"] += 1
-            logger.info(f"[翻译] 批次 {batch_start_idx} 降级逐行完成：{line_ok_count}/{len(indices)} 条成功")
+            logger.info(f"[缈昏瘧] 鎵规 {batch_start_idx} 闄嶇骇閫愯瀹屾垚锛歿line_ok_count}/{len(indices)} 鏉℃垚鍔?)
             return {gidx: batch_map[gidx] for gidx in indices}
 
-        # 统计计数器（在多线程间安全共享）
+        # 缁熻璁℃暟鍣紙鍦ㄥ绾跨▼闂村畨鍏ㄥ叡浜級
         stats = {"batch_ok": 0, "batch_fail": 0, "line_ok": 0}
-        last_report_pct = -10  # 上次报告进度百分比，初始-10确保第一条打印
+        last_report_pct = -10  # 涓婃鎶ュ憡杩涘害鐧惧垎姣旓紝鍒濆-10纭繚绗竴鏉℃墦鍗?
 
-        # 并行执行
+        # 骞惰鎵ц
         with ThreadPoolExecutor(max_workers=workers) as executor:
             futures = {executor.submit(process_batch, start_idx, bmap, stats): start_idx
                        for start_idx, bmap in batches}
@@ -1245,13 +1245,13 @@ class AutoSubv3(_PluginBase):
                 batch_results = future.result()
                 results.update(batch_results)
                 done_count = len(results)
-                # 每10%打印一次进度
+                # 姣?0%鎵撳嵃涓€娆¤繘搴?
                 pct = int(done_count / total * 100) if total > 0 else 0
                 if pct >= last_report_pct + 10:
-                    logger.info(f"[翻译] 进度: {pct}% ({done_count}/{total}) - 已完成 {done_count} 条")
+                    logger.info(f"[缈昏瘧] 杩涘害: {pct}% ({done_count}/{total}) - 宸插畬鎴?{done_count} 鏉?)
                     last_report_pct = pct
 
-        # 按索引排序返回
+        # 鎸夌储寮曟帓搴忚繑鍥?
         processed = [results[i] for i in sorted(results.keys())]
         self._stats['batch_success'] = stats["batch_ok"]
         self._stats['batch_fail'] = stats["batch_fail"]
@@ -1261,12 +1261,12 @@ class AutoSubv3(_PluginBase):
     @staticmethod
     def __external_subtitle_exists(video_file, prefer_langs=None, only_srt=False, strict=True):
         """
-        外部字幕文件是否存在,支持多种格式及扩展需求。
-        :param video_file: 视频文件路径
-        :param prefer_langs: 偏好语言列表，支持单个语言字符串或列表
-        :param only_srt: 是否只匹配srt格式的字幕
-        :param strict: 是否严格匹配偏好语言.当不存在偏好语言字幕但存在其他语言字幕时,是否返回其他字幕
-        :return: 元组 (是否存在, 检测到的语言, 文件名)
+        澶栭儴瀛楀箷鏂囦欢鏄惁瀛樺湪,鏀寔澶氱鏍煎紡鍙婃墿灞曢渶姹傘€?
+        :param video_file: 瑙嗛鏂囦欢璺緞
+        :param prefer_langs: 鍋忓ソ璇█鍒楄〃锛屾敮鎸佸崟涓瑷€瀛楃涓叉垨鍒楄〃
+        :param only_srt: 鏄惁鍙尮閰峴rt鏍煎紡鐨勫瓧骞?
+        :param strict: 鏄惁涓ユ牸鍖归厤鍋忓ソ璇█.褰撲笉瀛樺湪鍋忓ソ璇█瀛楀箷浣嗗瓨鍦ㄥ叾浠栬瑷€瀛楀箷鏃?鏄惁杩斿洖鍏朵粬瀛楀箷
+        :return: 鍏冪粍 (鏄惁瀛樺湪, 妫€娴嬪埌鐨勮瑷€, 鏂囦欢鍚?
         """
         video_dir, video_name = os.path.split(video_file)
         video_name, video_ext = os.path.splitext(video_name)
@@ -1274,7 +1274,7 @@ class AutoSubv3(_PluginBase):
         if prefer_langs and type(prefer_langs) == str:
             prefer_langs = [prefer_langs]
 
-        metadata_flags = ["default", "forced", "foreign", "sdh", "cc", "hi", "机翻"]
+        metadata_flags = ["default", "forced", "foreign", "sdh", "cc", "hi", "鏈虹炕"]
         if only_srt:
             subtitle_extensions = [".srt"]
         else:
@@ -1282,9 +1282,9 @@ class AutoSubv3(_PluginBase):
 
         def parse_props(props):
             """
-            解析字幕属性信息，提取语言和元数据标记。
-            :param props: 属性字符串
-            :return: (语言, 元数据列表)
+            瑙ｆ瀽瀛楀箷灞炴€т俊鎭紝鎻愬彇璇█鍜屽厓鏁版嵁鏍囪銆?
+            :param props: 灞炴€у瓧绗︿覆
+            :return: (璇█, 鍏冩暟鎹垪琛?
             """
             parts = props.split(".")
             if len(parts) < 1:
@@ -1292,7 +1292,7 @@ class AutoSubv3(_PluginBase):
 
             cur_subtitle_lang = None
             cur_metadata = []
-            # 倒序遍历文件名中的标记
+            # 鍊掑簭閬嶅巻鏂囦欢鍚嶄腑鐨勬爣璁?
             for i in range(len(parts) - 1, -1, -1):
                 part = parts[i]
                 if part in metadata_flags:
@@ -1303,32 +1303,32 @@ class AutoSubv3(_PluginBase):
                     except iso639.NonExistentLanguageError:
                         continue
                     else:
-                        cur_subtitle_lang = iso639.to_iso639_1(part)  # 记录最后一个语言标记
+                        cur_subtitle_lang = iso639.to_iso639_1(part)  # 璁板綍鏈€鍚庝竴涓瑷€鏍囪
 
             return cur_subtitle_lang, cur_metadata
 
-        # 备选的字幕语言.当strict=False时生效, 用于在未找到偏好语言时返回其他语言
+        # 澶囬€夌殑瀛楀箷璇█.褰搒trict=False鏃剁敓鏁? 鐢ㄤ簬鍦ㄦ湭鎵惧埌鍋忓ソ璇█鏃惰繑鍥炲叾浠栬瑷€
         second_lang = None
         second_file = None
-        # 检查字幕文件
+        # 妫€鏌ュ瓧骞曟枃浠?
         for file in os.listdir(video_dir):
             if not file.startswith(video_name):
                 continue
 
-            # 检查扩展名是否在支持范围内
+            # 妫€鏌ユ墿灞曞悕鏄惁鍦ㄦ敮鎸佽寖鍥村唴
             _, ext = os.path.splitext(file)
             if ext.lower() not in subtitle_extensions:
                 continue
 
-            # 提取文件名中的语言和元数据信息
+            # 鎻愬彇鏂囦欢鍚嶄腑鐨勮瑷€鍜屽厓鏁版嵁淇℃伅
             props_str = file[len(video_name) + 1: -len(ext)] if file.startswith(video_name + ".") else ""
             subtitle_lang, metadata = parse_props(props_str)
 
-            # 如果没有语言标记，跳过
+            # 濡傛灉娌℃湁璇█鏍囪锛岃烦杩?
             if not subtitle_lang:
                 continue
 
-            # 如果指定了偏好语言
+            # 濡傛灉鎸囧畾浜嗗亸濂借瑷€
             if prefer_langs:
                 if subtitle_lang in prefer_langs:
                     return True, subtitle_lang, file
@@ -1336,7 +1336,7 @@ class AutoSubv3(_PluginBase):
                     second_lang = subtitle_lang
                     second_file = file
             else:
-                # 未指定偏好语言，找到的第一个字幕即返回
+                # 鏈寚瀹氬亸濂借瑷€锛屾壘鍒扮殑绗竴涓瓧骞曞嵆杩斿洖
                 return True, subtitle_lang, file
         if not strict and second_lang:
             return True, second_lang, second_file
@@ -1344,7 +1344,7 @@ class AutoSubv3(_PluginBase):
 
     def __target_subtitle_exists(self, video_file):
         """
-        目标字幕文件是否存在
+        鐩爣瀛楀箷鏂囦欢鏄惁瀛樺湪
         :param video_file:
         :return:
         """
@@ -1378,38 +1378,38 @@ class AutoSubv3(_PluginBase):
 
     def get_form(self) -> Tuple[List[dict], Dict[str, Any]]:
         """
-        拼装插件配置页面，需要返回两块数据：1、页面配置；2、数据结构
+        鎷艰鎻掍欢閰嶇疆椤甸潰锛岄渶瑕佽繑鍥炰袱鍧楁暟鎹細1銆侀〉闈㈤厤缃紱2銆佹暟鎹粨鏋?
         """
         return [
             {
                 'component': 'VForm',
                 'content': [
-                    {                        'component': 'VRow',                        'content': [                            {                                'component': 'VCol',                                'props': {'cols': 12, 'md': 4},                                'content': [{'component': 'VSwitch', 'props': {'model': 'enabled', 'label': '启用插件', 'color': 'primary'}}]                            },                            {                                'component': 'VCol',                                'props': {'cols': 12, 'md': 4},                                'content': [{'component': 'VSwitch', 'props': {'model': 'send_notify', 'label': '发送通知'}}]                            },                            {                                'component': 'VCol',                                'props': {'cols': 12, 'md': 4},                                'content': [{'component': 'VSwitch', 'props': {'model': 'clear_history', 'label': '清理历史记录'}}]                            }                        ]                    },                    {                        'component': 'VRow',                        'content': [                            {                                'component': 'VCol',                                'props': {'cols': 12},                                'content': [{                                    'component': 'VTextarea',                                    'props': {                                        'model': 'path_whitelist',                                        'label': '监控路径（每行一个）',                                        'rows': 3,                                        'placeholder': '/mnt/media/movies\n/downloads',                                        'hint': '目录变化时自动触发字幕生成'                                    }                                }]                            }                        ]                    },                    {                        'component': 'VRow',
+                    {                        'component': 'VRow',                        'content': [                            {                                'component': 'VCol',                                'props': {'cols': 12, 'md': 4},                                'content': [{'component': 'VSwitch', 'props': {'model': 'enabled', 'label': '鍚敤鎻掍欢', 'color': 'primary'}}]                            },                            {                                'component': 'VCol',                                'props': {'cols': 12, 'md': 4},                                'content': [{'component': 'VSwitch', 'props': {'model': 'send_notify', 'label': '鍙戦€侀€氱煡'}}]                            },                            {                                'component': 'VCol',                                'props': {'cols': 12, 'md': 4},                                'content': [{'component': 'VSwitch', 'props': {'model': 'clear_history', 'label': '娓呯悊鍘嗗彶璁板綍'}}]                            }                        ]                    },                    {                        'component': 'VRow',                        'content': [                            {                                'component': 'VCol',                                'props': {'cols': 12},                                'content': [{                                    'component': 'VTextarea',                                    'props': {                                        'model': 'path_whitelist',                                        'label': '鐩戞帶璺緞锛堟瘡琛屼竴涓級',                                        'rows': 3,                                        'placeholder': '/mnt/media/movies\n/downloads',                                        'hint': '鐩綍鍙樺寲鏃惰嚜鍔ㄨЕ鍙戝瓧骞曠敓鎴?                                    }                                }]                            }                        ]                    },                    {                        'component': 'VRow',
                         'content': [
                             {
                                 'component': 'VCol',
                                 'props': {'cols': 12, 'md': 3},
-                                'content': [{'component': 'VSwitch', 'props': {'model': 'process_new_only', 'label': '仅处理新增视频', 'hint': '关闭则处理路径下所有视频'}}]
+                                'content': [{'component': 'VSwitch', 'props': {'model': 'process_new_only', 'label': '浠呭鐞嗘柊澧炶棰?, 'hint': '鍏抽棴鍒欏鐞嗚矾寰勪笅鎵€鏈夎棰?}}]
                             },
                             {
                                 'component': 'VCol',
                                 'props': {'cols': 12, 'md': 3},
-                                'content': [{'component': 'VSwitch', 'props': {'model': 'run_now', 'label': '手动执行一次', 'color': 'secondary'}}]
+                                'content': [{'component': 'VSwitch', 'props': {'model': 'run_now', 'label': '鎵嬪姩鎵ц涓€娆?, 'color': 'secondary'}}]
                             },
                             {
                                 'component': 'VCol',
                                 'props': {'cols': 12, 'md': 3},
-                                'content': [{'component': 'VSwitch', 'props': {'model': 'translate_zh', 'label': '外语翻译成中文', 'hint': '使用openai大模型翻译'}}]
+                                'content': [{'component': 'VSwitch', 'props': {'model': 'translate_zh', 'label': '澶栬缈昏瘧鎴愪腑鏂?, 'hint': '浣跨敤openai澶фā鍨嬬炕璇?}}]
                             },
                             {
                                 'component': 'VCol',
                                 'props': {'cols': 12, 'md': 3},
-                                'content': [{'component': 'VSwitch', 'props': {'model': 'skip_chinese', 'label': '中文视频不翻译', 'hint': 'Whisper检测到中文时跳过翻译并记录，下次自动跳过'}}]
+                                'content': [{'component': 'VSwitch', 'props': {'model': 'skip_chinese', 'label': '涓枃瑙嗛涓嶇炕璇?, 'hint': 'Whisper妫€娴嬪埌涓枃鏃惰烦杩囩炕璇戝苟璁板綍锛屼笅娆¤嚜鍔ㄨ烦杩?}}]
                             }
                         ]
                     },
-                    {'component': 'VRow',                        'props': {'v-show': 'run_now'},                        'content': [                            {                                'component': 'VCol',                                'props': {'cols': 12},                                'content': [{                                    'component': 'VTextarea',                                    'props': {                                        'model': 'path_list',                                        'label': '媒体路径（手动执行时使用）',                                        'rows': 3,                                        'placeholder': '绝对路径，每行一个，支持文件和文件夹'                                    }                                }]                            }                        ]                    },                    {                        'component': 'VExpansionPanels',                        'props': {'variant': 'accordion', 'multiple': True},                        'content': [                            {                                'component': 'VExpansionPanel',                                'content': [                                    {                                        'component': 'VExpansionPanelTitle',                                        'text': 'Whisper音轨转字幕设置'                                    },                                    {                                        'component': 'VExpansionPanelText',                                        'content': [                                            {                                                'component': 'VRow',                                                'content': [                                                    {                                                        'component': 'VCol',                                                        'props': {'cols': 12, 'md': 6},                                                        'content': [{'component': 'VSwitch', 'props': {'model': 'enable_asr', 'label': '允许ASR生成字幕'}}]                                                    },                                                    {                                                        'component': 'VCol',                                                        'props': {'cols': 12, 'md': 6},                                                        'content': [{'component': 'VSwitch', 'props': {'model': 'auto_detect_language', 'label': '自动检测语言', 'hint': '由whisper自动识别，而非视频元数据'}}]                                                    }                                                ]                                            },                                            {                                                'component': 'VRow',                                                'content': [                                                    {                                                        'component': 'VCol',                                                        'props': {'cols': 12, 'md': 6},                                                        'content': [{                                                            'component': 'VSelect',                                                            'props': {                                                                'model': 'faster_whisper_model',                                                                'label': 'Whisper模型',
-                                                                'hint': 'Whisper模型(自选,效果越好,时间越久)',                                                                'items': [                                                                    'tiny', 'base', 'small', 'medium', 'large-v3',                                                                    {'title': 'large-v3-turbo', 'value': 'deepdml/faster-whisper-large-v3-turbo-ct2'},                                                                ]                                                            }                                                        }]                                                    },                                                    {                                                        'component': 'VCol',                                                        'props': {'cols': 12, 'md': 6},                                                        'content': [{                                                            'component': 'VSelect',                                                            'props': {                                                                'model': 'subtitle_output_mode',                                                                'label': '字幕输出模式',                                                                'items': [                                                                    {'title': '双语字幕（翻译+原文）', 'value': 'bilingual'},                                                                    {'title': '纯中文字幕', 'value': 'chinese_only'}                                                                ]                                                            }                                                        }]                                                    }                                                ]                                            },                                            {                                                'component': 'VRow',                                                'content': [                                                    {                                                        'component': 'VCol',                                                        'props': {'cols': 12, 'md': 4},                                                        'content': [{'component': 'VTextField', 'props': {'model': 'max_segment_duration', 'label': '每段字幕最大时长（秒）', 'placeholder': '8'}}]                                                    },                                                    {                                                        'component': 'VCol',                                                        'props': {'cols': 12, 'md': 4},                                                        'content': [{'component': 'VTextField', 'props': {'model': 'max_segment_chars', 'label': '每段字幕最大字符数', 'placeholder': '50', 'default': '50'}}]                                                    },                                                    {                                                        'component': 'VCol',                                                        'props': {'cols': 12, 'md': 4},                                                        'content': [{'component': 'VTextField', 'props': {'model': 'file_size', 'label': '文件最小大小（MB）', 'placeholder': '默认10'}}]                                                    }                                                ]                                            },                                            {                                                'component': 'VRow',                                                'content': [                                                    {                                                        'component': 'VCol',                                                        'props': {'cols': 12, 'md': 6},                                                        'content': [{                                                            'component': 'VSelect',                                                            'props': {                                                                'model': 'translate_preference',                                                                'label': '字幕源语言偏好',                                                                'items': [                                                                    {'title': '仅英文', 'value': 'english_only'},                                                                    {'title': '英文优先', 'value': 'english_first'},                                                                    {'title': '原音优先', 'value': 'origin_first'}                                                                ]                                                            }                                                        }]                                                    },                                                    {                                                        'component': 'VCol',                                                        'props': {'cols': 12, 'md': 6},                                                        'content': [{'component': 'VSwitch', 'props': {'model': 'proxy', 'label': '使用代理下载模型', 'hint': '需配置MP PROXY环境变量'}}]                                                    }                                                ]                                            }                                        ]                                    }                                ]                            },                            {                                'component': 'VExpansionPanel',                                'props': {'v-show': 'translate_zh'},                                'content': [                                    {                                        'component': 'VExpansionPanelTitle',                                        'text': '翻译参数设置'                                    },                                    {                                        'component': 'VExpansionPanelText',                                        'content': [                                            {                                                'component': 'VRow',                                                'content': [                                                    {                                                        'component': 'VCol',                                                        'props': {'cols': 12, 'md': 4},                                                        'content': [{'component': 'VTextField', 'props': {'model': 'context_window', 'label': '上下文窗口大小', 'placeholder': '5'}}]                                                    },                                                    {                                                        'component': 'VCol',                                                        'props': {'cols': 12, 'md': 4},                                                        'content': [{'component': 'VTextField', 'props': {'model': 'max_retries', 'label': 'LLM请求重试次数', 'placeholder': '3'}}]                                                    },                                                    {                                                        'component': 'VCol',                                                        'props': {'cols': 12, 'md': 4},                                                        'content': [{'component': 'VSwitch', 'props': {'model': 'enable_batch', 'label': '启用批量翻译', 'hint': '开启：速度更快，走批量提示词；关闭：逐条翻译，效果更好但更慢'}}]                                                    }                                                ]                                            },                                            {                                                'component': 'VRow',                                                'content': [                                                    {                                                        'component': 'VCol',                                                        'props': {'cols': 12, 'md': 6, 'v-show': 'enable_batch'},                                                        'content': [{'component': 'VTextField', 'props': {'model': 'batch_size', 'label': '每批翻译行数', 'placeholder': '20 (建议不超过30)'}}]                                                    },                                                    {                                                        'component': 'VCol',                                                        'props': {'cols': 12, 'md': 6, 'v-show': 'enable_batch'},                                                        'content': [{'component': 'VTextField', 'props': {'model': 'parallel_workers', 'label': '并发线程数', 'placeholder': '5', 'default': '5'}}]                                                    }                                                ]                                            }                                        ]                                    }                                ]                            },                            {                                'component': 'VExpansionPanel',                                'props': {'v-show': 'translate_zh'},                                'content': [                                    {                                        'component': 'VExpansionPanelTitle',                                        'text': '翻译模型api设置'                                    },                                    {                                        'component': 'VExpansionPanelText',                                        'content': [                                            {                                                'component': 'VRow',                                                'content': [                                                    {                                                        'component': 'VCol',                                                        'props': {'v-show': False, 'cols': 12, 'md': 4},                                                        'content': [{'component': 'VSwitch', 'props': {'model': 'use_chatgpt', 'label': '复用ChatGPT插件配置'}}]                                                    },                                                    {                                                        'component': 'VTextField',                                                        'props': {                                                            'model': 'use_chatgpt_trigger',                                                            'class': 'd-none',                                                            'text': 'trigger',                                                            'change': 'use_chatgpt_trigger = use_chatgpt ? 1 : 0'                                                        }                                                    },                                                    {                                                        'component': 'VCol',                                                        'props': {'cols': 12, 'md': 4},                                                        'content': [{'component': 'VSwitch', 'props': {'model': 'openai_proxy', 'label': '使用代理服务器'}}]                                                    },                                                    {                                                        'component': 'VCol',                                                        'props': {'cols': 12, 'md': 4},                                                        'content': [{'component': 'VSwitch', 'props': {'model': 'compatible', 'label': '兼容模式'}}]                                                    }                                                ]                                            },                                            {                                                'component': 'VRow',                                                'content': [                                                    {                                                        'component': 'VCol',                                                        'props': {'cols': 12, 'md': 4},                                                        'content': [{'component': 'VTextField', 'props': {'model': 'openai_url', 'label': 'API URL', 'placeholder': 'https://api.siliconflow.cn'}}]                                                    },                                                    {                                                        'component': 'VCol',                                                        'props': {'cols': 12, 'md': 4},                                                        'content': [{'component': 'VTextField', 'props': {'model': 'openai_key', 'label': 'API密钥', 'placeholder': 'sk-xxx'}}]                                                    },                                                    {                                                        'component': 'VCol',                                                        'props': {'cols': 12, 'md': 4},                                                        'content': [{'component': 'VTextField', 'props': {'model': 'openai_model', 'label': '自定义模型', 'placeholder': 'inclusionAI/Ling-mini-2.0'}}]                                                    }                                                ]                                            }                                        ]                                    }                                ]                            }                        ]                    },                    {                        'component': 'VRow',                        'content': [                            {                                'component': 'VCol',                                'props': {'cols': 12},                                'content': [{                                    'component': 'VAlert',                                    'props': {'type': 'success', 'variant': 'tonal'},                                    'content': [                                        {                                            'component': 'a',                                            'props': {'href': 'https://github.com/jianji112/MoviePilot-Plugins/blob/main/README.md#%E7%94%B3%E8%AF%B7%E7%A1%85%E5%9F%BA%E6%B5%81%E5%8A%A8-api', 'target': '_blank'},                                            'content': [{'component': 'u', 'text': 'API申请教程'}]                                        },                                        {                                            'component': 'span',                                            'text': ' | 详细说明：'                                        },                                        {                                            'component': 'a',                                            'props': {'href': 'https://github.com/jianji112/MoviePilot-Plugins/blob/main/plugins/autosubv3/README.md', 'target': '_blank'},                                            'content': [{'component': 'u', 'text': 'README'}]                                        }                                    ]                                }]                            }                        ]                    }                ]
+                    {'component': 'VRow',                        'props': {'v-show': 'run_now'},                        'content': [                            {                                'component': 'VCol',                                'props': {'cols': 12},                                'content': [{                                    'component': 'VTextarea',                                    'props': {                                        'model': 'path_list',                                        'label': '濯掍綋璺緞锛堟墜鍔ㄦ墽琛屾椂浣跨敤锛?,                                        'rows': 3,                                        'placeholder': '缁濆璺緞锛屾瘡琛屼竴涓紝鏀寔鏂囦欢鍜屾枃浠跺す'                                    }                                }]                            }                        ]                    },                    {                        'component': 'VExpansionPanels',                        'props': {'variant': 'accordion', 'multiple': True},                        'content': [                            {                                'component': 'VExpansionPanel',                                'content': [                                    {                                        'component': 'VExpansionPanelTitle',                                        'text': 'Whisper闊宠建杞瓧骞曡缃?                                    },                                    {                                        'component': 'VExpansionPanelText',                                        'content': [                                            {                                                'component': 'VRow',                                                'content': [                                                    {                                                        'component': 'VCol',                                                        'props': {'cols': 12, 'md': 6},                                                        'content': [{'component': 'VSwitch', 'props': {'model': 'enable_asr', 'label': '鍏佽ASR鐢熸垚瀛楀箷'}}]                                                    },                                                    {                                                        'component': 'VCol',                                                        'props': {'cols': 12, 'md': 6},                                                        'content': [{'component': 'VSwitch', 'props': {'model': 'auto_detect_language', 'label': '鑷姩妫€娴嬭瑷€', 'hint': '鐢眞hisper鑷姩璇嗗埆锛岃€岄潪瑙嗛鍏冩暟鎹?}}]                                                    }                                                ]                                            },                                            {                                                'component': 'VRow',                                                'content': [                                                    {                                                        'component': 'VCol',                                                        'props': {'cols': 12, 'md': 6},                                                        'content': [{                                                            'component': 'VSelect',                                                            'props': {                                                                'model': 'faster_whisper_model',                                                                'label': 'Whisper妯″瀷',
+                                                                'hint': 'Whisper妯″瀷(鑷€?鏁堟灉瓒婂ソ,鏃堕棿瓒婁箙)',                                                                'items': [                                                                    'tiny', 'base', 'small', 'medium', 'large-v3',                                                                    {'title': 'large-v3-turbo', 'value': 'deepdml/faster-whisper-large-v3-turbo-ct2'},                                                                ]                                                            }                                                        }]                                                    },                                                    {                                                        'component': 'VCol',                                                        'props': {'cols': 12, 'md': 6},                                                        'content': [{                                                            'component': 'VSelect',                                                            'props': {                                                                'model': 'subtitle_output_mode',                                                                'label': '瀛楀箷杈撳嚭妯″紡',                                                                'items': [                                                                    {'title': '鍙岃瀛楀箷锛堢炕璇?鍘熸枃锛?, 'value': 'bilingual'},                                                                    {'title': '绾腑鏂囧瓧骞?, 'value': 'chinese_only'}                                                                ]                                                            }                                                        }]                                                    }                                                ]                                            },                                            {                                                'component': 'VRow',                                                'content': [                                                    {                                                        'component': 'VCol',                                                        'props': {'cols': 12, 'md': 4},                                                        'content': [{'component': 'VTextField', 'props': {'model': 'max_segment_duration', 'label': '姣忔瀛楀箷鏈€澶ф椂闀匡紙绉掞級', 'placeholder': '8'}}]                                                    },                                                    {                                                        'component': 'VCol',                                                        'props': {'cols': 12, 'md': 4},                                                        'content': [{'component': 'VTextField', 'props': {'model': 'max_segment_chars', 'label': '姣忔瀛楀箷鏈€澶у瓧绗︽暟', 'placeholder': '50', 'default': '50'}}]                                                    },                                                    {                                                        'component': 'VCol',                                                        'props': {'cols': 12, 'md': 4},                                                        'content': [{'component': 'VTextField', 'props': {'model': 'file_size', 'label': '鏂囦欢鏈€灏忓ぇ灏忥紙MB锛?, 'placeholder': '榛樿10'}}]                                                    }                                                ]                                            },                                            {                                                'component': 'VRow',                                                'content': [                                                    {                                                        'component': 'VCol',                                                        'props': {'cols': 12, 'md': 6},                                                        'content': [{                                                            'component': 'VSelect',                                                            'props': {                                                                'model': 'translate_preference',                                                                'label': '瀛楀箷婧愯瑷€鍋忓ソ',                                                                'items': [                                                                    {'title': '浠呰嫳鏂?, 'value': 'english_only'},                                                                    {'title': '鑻辨枃浼樺厛', 'value': 'english_first'},                                                                    {'title': '鍘熼煶浼樺厛', 'value': 'origin_first'}                                                                ]                                                            }                                                        }]                                                    },                                                    {                                                        'component': 'VCol',                                                        'props': {'cols': 12, 'md': 6},                                                        'content': [{'component': 'VSwitch', 'props': {'model': 'proxy', 'label': '浣跨敤浠ｇ悊涓嬭浇妯″瀷', 'hint': '闇€閰嶇疆MP PROXY鐜鍙橀噺'}}]                                                    }                                                ]                                            }                                        ]                                    }                                ]                            },                            {                                'component': 'VExpansionPanel',                                'props': {'v-show': 'translate_zh'},                                'content': [                                    {                                        'component': 'VExpansionPanelTitle',                                        'text': '缈昏瘧鍙傛暟璁剧疆'                                    },                                    {                                        'component': 'VExpansionPanelText',                                        'content': [                                            {                                                'component': 'VRow',                                                'content': [                                                    {                                                        'component': 'VCol',                                                        'props': {'cols': 12, 'md': 4},                                                        'content': [{'component': 'VTextField', 'props': {'model': 'context_window', 'label': '涓婁笅鏂囩獥鍙ｅぇ灏?, 'placeholder': '5'}}]                                                    },                                                    {                                                        'component': 'VCol',                                                        'props': {'cols': 12, 'md': 4},                                                        'content': [{'component': 'VTextField', 'props': {'model': 'max_retries', 'label': 'LLM璇锋眰閲嶈瘯娆℃暟', 'placeholder': '3'}}]                                                    },                                                    {                                                        'component': 'VCol',                                                        'props': {'cols': 12, 'md': 4},                                                        'content': [{'component': 'VSwitch', 'props': {'model': 'enable_batch', 'label': '鍚敤鎵归噺缈昏瘧', 'hint': '寮€鍚細閫熷害鏇村揩锛岃蛋鎵归噺鎻愮ず璇嶏紱鍏抽棴锛氶€愭潯缈昏瘧锛屾晥鏋滄洿濂戒絾鏇存參'}}]                                                    }                                                ]                                            },                                            {                                                'component': 'VRow',                                                'content': [                                                    {                                                        'component': 'VCol',                                                        'props': {'cols': 12, 'md': 6, 'v-show': 'enable_batch'},                                                        'content': [{'component': 'VTextField', 'props': {'model': 'batch_size', 'label': '姣忔壒缈昏瘧琛屾暟', 'placeholder': '20 (寤鸿涓嶈秴杩?0)'}}]                                                    },                                                    {                                                        'component': 'VCol',                                                        'props': {'cols': 12, 'md': 6, 'v-show': 'enable_batch'},                                                        'content': [{'component': 'VTextField', 'props': {'model': 'parallel_workers', 'label': '骞跺彂绾跨▼鏁?, 'placeholder': '5', 'default': '5'}}]                                                    }                                                ]                                            }                                        ]                                    }                                ]                            },                            {                                'component': 'VExpansionPanel',                                'props': {'v-show': 'translate_zh'},                                'content': [                                    {                                        'component': 'VExpansionPanelTitle',                                        'text': '缈昏瘧妯″瀷api璁剧疆'                                    },                                    {                                        'component': 'VExpansionPanelText',                                        'content': [                                            {                                                'component': 'VRow',                                                'content': [                                                    {                                                        'component': 'VCol',                                                        'props': {'v-show': False, 'cols': 12, 'md': 4},                                                        'content': [{'component': 'VSwitch', 'props': {'model': 'use_chatgpt', 'label': '澶嶇敤ChatGPT鎻掍欢閰嶇疆'}}]                                                    },                                                    {                                                        'component': 'VTextField',                                                        'props': {                                                            'model': 'use_chatgpt_trigger',                                                            'class': 'd-none',                                                            'text': 'trigger',                                                            'change': 'use_chatgpt_trigger = use_chatgpt ? 1 : 0'                                                        }                                                    },                                                    {                                                        'component': 'VCol',                                                        'props': {'cols': 12, 'md': 4},                                                        'content': [{'component': 'VSwitch', 'props': {'model': 'openai_proxy', 'label': '浣跨敤浠ｇ悊鏈嶅姟鍣?}}]                                                    },                                                    {                                                        'component': 'VCol',                                                        'props': {'cols': 12, 'md': 4},                                                        'content': [{'component': 'VSwitch', 'props': {'model': 'compatible', 'label': '鍏煎妯″紡'}}]                                                    }                                                ]                                            },                                            {                                                'component': 'VRow',                                                'content': [                                                    {                                                        'component': 'VCol',                                                        'props': {'cols': 12, 'md': 4},                                                        'content': [{'component': 'VTextField', 'props': {'model': 'openai_url', 'label': 'API URL', 'placeholder': 'https://api.siliconflow.cn'}}]                                                    },                                                    {                                                        'component': 'VCol',                                                        'props': {'cols': 12, 'md': 4},                                                        'content': [{'component': 'VTextField', 'props': {'model': 'openai_key', 'label': 'API瀵嗛挜', 'placeholder': 'sk-xxx'}}]                                                    },                                                    {                                                        'component': 'VCol',                                                        'props': {'cols': 12, 'md': 4},                                                        'content': [{'component': 'VTextField', 'props': {'model': 'openai_model', 'label': '鑷畾涔夋ā鍨?, 'placeholder': 'inclusionAI/Ling-mini-2.0'}}]                                                    }                                                ]                                            }                                        ]                                    }                                ]                            }                        ]                    },                    {                        'component': 'VRow',                        'content': [                            {                                'component': 'VCol',                                'props': {'cols': 12},                                'content': [{                                    'component': 'VAlert',                                    'props': {'type': 'success', 'variant': 'tonal'},                                    'content': [                                        {                                            'component': 'a',                                            'props': {'href': 'https://github.com/jianji112/MoviePilot-Plugins/blob/main/README.md#%E7%94%B3%E8%AF%B7%E7%A1%85%E5%9F%BA%E6%B5%81%E5%8A%A8-api', 'target': '_blank'},                                            'content': [{'component': 'u', 'text': 'API鐢宠鏁欑▼'}]                                        },                                        {                                            'component': 'span',                                            'text': ' | 璇︾粏璇存槑锛?                                        },                                        {                                            'component': 'a',                                            'props': {'href': 'https://github.com/jianji112/MoviePilot-Plugins/blob/main/plugins/autosubv3/README.md', 'target': '_blank'},                                            'content': [{'component': 'u', 'text': 'README'}]                                        }                                    ]                                }]                            }                        ]                    }                ]
             }
         ], {
             "enabled": False,
@@ -1448,7 +1448,7 @@ class AutoSubv3(_PluginBase):
         pass
 
     def get_page(self) -> List[dict]:
-        # 加载任务并按添加时间倒序排列
+        # 鍔犺浇浠诲姟骞舵寜娣诲姞鏃堕棿鍊掑簭鎺掑垪
         tasks: Dict[str, TaskItem] = self.load_tasks()
         sorted_tasks = sorted(
             tasks.items(),
@@ -1468,17 +1468,17 @@ class AutoSubv3(_PluginBase):
         rows = []
         for task_id, task in sorted_tasks:
             source_label = {
-                TaskSource.MANUAL: "手动添加",
-                TaskSource.EVENT: "入库触发"
+                TaskSource.MANUAL: "鎵嬪姩娣诲姞",
+                TaskSource.EVENT: "鍏ュ簱瑙﹀彂"
             }.get(task.source, task.source)
 
             status_text = {
-                TaskStatus.PENDING: "等待中",
-                TaskStatus.IN_PROGRESS: "处理中",
-                TaskStatus.COMPLETED: "已完成",
-                TaskStatus.IGNORED: "已忽略",
-                TaskStatus.NO_AUDIO: "无声音跳过",
-                TaskStatus.FAILED: "失败"
+                TaskStatus.PENDING: "绛夊緟涓?,
+                TaskStatus.IN_PROGRESS: "澶勭悊涓?,
+                TaskStatus.COMPLETED: "宸插畬鎴?,
+                TaskStatus.IGNORED: "宸插拷鐣?,
+                TaskStatus.NO_AUDIO: "鏃犲０闊宠烦杩?,
+                TaskStatus.FAILED: "澶辫触"
             }.get(task.status, task.status)
 
             status_class = status_classes.get(task.status, "")
@@ -1523,27 +1523,27 @@ class AutoSubv3(_PluginBase):
                                             {
                                                 "component": "th",
                                                 "props": {"class": "text-start ps-4"},
-                                                "text": "添加时间"
+                                                "text": "娣诲姞鏃堕棿"
                                             },
                                             {
                                                 "component": "th",
                                                 "props": {"class": "text-start ps-4"},
-                                                "text": "视频文件"
+                                                "text": "瑙嗛鏂囦欢"
                                             },
                                             {
                                                 "component": "th",
                                                 "props": {"class": "text-start ps-4"},
-                                                "text": "来源"
+                                                "text": "鏉ユ簮"
                                             },
                                             {
                                                 "component": "th",
                                                 "props": {"class": "text-start ps-4"},
-                                                "text": "完成时间"
+                                                "text": "瀹屾垚鏃堕棿"
                                             },
                                             {
                                                 "component": "th",
                                                 "props": {"class": "text-start ps-4"},
-                                                "text": "状态"
+                                                "text": "鐘舵€?
                                             },
                                         ]
                                     },
@@ -1562,18 +1562,18 @@ class AutoSubv3(_PluginBase):
 
     def get_state(self) -> bool:
         """
-        获取插件状态，如果插件正在运行， 则返回True
+        鑾峰彇鎻掍欢鐘舵€侊紝濡傛灉鎻掍欢姝ｅ湪杩愯锛?鍒欒繑鍥濼rue
         """
         return self._running
 
     def stop_service(self):
         """
-        退出插件
+        閫€鍑烘彃浠?
         """
         if self._running:
             self._event.set()
         if self._consumer_thread and self._consumer_thread.is_alive():
-            logger.info("正在停止当前任务...")
+            logger.info("姝ｅ湪鍋滄褰撳墠浠诲姟...")
             # self._consumer_thread.join(timeout=3)
             self._consumer_thread.join()
 
@@ -1581,22 +1581,22 @@ class AutoSubv3(_PluginBase):
             while not self._task_queue.empty():
                 self._task_queue.get_nowait()
                 self._task_queue.task_done()
-            logger.info("任务队列已清空")
+            logger.info("浠诲姟闃熷垪宸叉竻绌?)
         if self._tasks is not None:
             for task_id in list(self._tasks.keys()):
                 task = self._tasks[task_id]
                 if task.status == TaskStatus.PENDING or task.status == TaskStatus.IN_PROGRESS:
                     task.status = TaskStatus.FAILED
                     task.complete_time = datetime.now()
-            self.save_tasks()  # 持久化更新后的任务列表
+            self.save_tasks()  # 鎸佷箙鍖栨洿鏂板悗鐨勪换鍔″垪琛?
         if self._observer:
             try:
                 self._observer.stop()
                 self._observer.join(timeout=5)
-                logger.info("目录监控已停止")
+                logger.info("鐩綍鐩戞帶宸插仠姝?)
             except Exception:
                 pass
             self._observer = None
         self._running = False
         self._event.clear()
-        logger.info(f"自动字幕生成服务已停止")
+        logger.info(f"鑷姩瀛楀箷鐢熸垚鏈嶅姟宸插仠姝?)
